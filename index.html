@@ -8,6 +8,9 @@
     :root{
       --bg:#0f1113;--panel:#15181b;--panel2:#1b2024;--text:#e5e7eb;--muted:#9ca3af;
       --blue:#2563eb;--red:#ef4444;--ring:#3b82f6;--warn:#f59e0b;--danger:#ef4444;--success:#22c55e;
+      /* team variables (updated by JS) */
+      --team-a: var(--blue);
+      --team-b: var(--red);
     }
     [data-theme="light"]{
       --bg:#f6f7f9;--panel:#ffffff;--panel2:#f1f5f9;--text:#0f172a;--muted:#475569;--ring:#2563eb;--warn:#b45309;--danger:#dc2626;--success:#16a34a;
@@ -31,10 +34,10 @@
     .input{background:#0f1419;border:1px solid #2b3138;border-radius:10px;color:var(--text);padding:8px}
     .grid{display:grid;gap:12px}
     .grid.cards{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
-    [id^="plist-"]{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-    .player{position:relative;display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:#0d1013;border:2px solid #262a2f;border-radius:10px;padding:8px;transition:0.2s;box-shadow:0 1px 0 #0008;width:100%}
-    .player[data-team="A"]:hover{border-color:var(--blue);box-shadow:0 0 6px var(--blue)}
-    .player[data-team="B"]:hover{border-color:var(--red);box-shadow:0 0 6px var(--red)}
+    [id^="plist-"]{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+    .player{position:relative;display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:#0d1013;border:2px solid #262a2f;border-radius:10px;padding:10px;transition:0.2s;box-shadow:0 1px 0 #0008;width:100%;box-sizing:border-box}
+    .player[data-team="A"]:hover{border-color:var(--team-a);box-shadow:0 0 6px var(--team-a)}
+    .player[data-team="B"]:hover{border-color:var(--team-b);box-shadow:0 0 6px var(--team-b)}
     .weapon-slot{width:100%;display:flex;justify-content:center;align-items:center;background:transparent;border:none;border-radius:10px;margin-bottom:4px}
     .weapon-slot img{display:block;border-radius:10px;max-width:140px;max-height:72px;width:auto;height:auto}
     .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
@@ -44,7 +47,7 @@
     .dead{background:#2a0f12;border-color:#4b1b1f;color:#fca5a5}
     .benched{background:#26220f;border-color:#423916;color:#fde68a}
     .number{padding:2px 6px;border-radius:6px;background:#151a20;border:1px solid #20262c;font-size:13px}
-    .number[data-editable]{cursor:pointer}
+    .number[data-editable]{cursor:pointer;font-size:16px;font-weight:700}
     .small{font-size:12px}
     .uuid{display:none} /* UUID text removed as requested */
     /* Hover copy button (visible only on hover) */
@@ -242,10 +245,29 @@
       };
       saveLocal();
       applyTheme(state.theme);
+      applyTeamColors();
       render();
     }
 
     function applyTheme(t){ document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark'); localStorage.setItem('theme', t); }
+
+    /* Apply team colors globally via CSS variables and system theme color */
+    function applyTeamColors(){
+      try{
+        const tA = state?.teams?.find(t=>t.id==='A')?.color || DEFAULTS.teams[0].color;
+        const tB = state?.teams?.find(t=>t.id==='B')?.color || DEFAULTS.teams[1].color;
+        const rootStyle = document.documentElement.style;
+        rootStyle.setProperty('--team-a', tA);
+        rootStyle.setProperty('--team-b', tB);
+        /* Use Team A as focus ring to keep a single accent */
+        rootStyle.setProperty('--ring', tA);
+        /* Update PWA/Browser UI theme color to match panel background for current theme */
+        const surface = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#15181b';
+        let meta = document.querySelector('meta[name="theme-color"]');
+        if(!meta){ meta=document.createElement('meta'); meta.setAttribute('name','theme-color'); document.head.appendChild(meta); }
+        meta.setAttribute('content', surface);
+      }catch(e){ /* no-op */ }
+    }
 
     const IMAGE_NAME_MAP = {
       // Light
@@ -270,7 +292,8 @@
       const team = state.teams.find(t=>t.id===teamId);
       const baseUrl = location.href.split('?')[0];
       const hudLink = `${baseUrl}?player=${p.id}`;
-      const wCost = p.weapon==='Starter'?0:getCost(p.weapon);
+      const isStarter = p.weapon==='Starter';
+      const wCost = isStarter?0:getCost(p.weapon);
       return `
         <div class="player" data-player="${p.id}" data-team="${teamId}" draggable="true">
           <button class="copy-fab" title="Copy HUD Link" data-copy="${hudLink}">
@@ -286,9 +309,10 @@
             ${p.dead?'<span class="badge dead">⚰ Dead</span>':''}
             ${p.benched?'<span class="badge benched">Benched</span>':''}
           </div>
+          ${isStarter?'':`
           <div class="small" style="margin-top:4px">
             Weapon: <strong>${p.weapon}</strong> <span class="number" style="margin-left:6px">$<span data-field="wcost">${wCost}</span></span>
-          </div>
+          </div>`}
           <div class="small" style="margin-top:4px">
             Cash: <span class="number" data-editable>$<span data-field="cash">${p.cash}</span></span>
           </div>
@@ -492,7 +516,7 @@
       if(el.id==='buyFilter'){ renderBuyGrid(); return; }
 
       if(el.matches('[data-team-color]')){
-        const t=state.teams.find(x=>x.id===el.dataset.teamColor); t.color=el.value; saveLocal(); render(); return;
+        const t=state.teams.find(x=>x.id===el.dataset.teamColor); t.color=el.value; saveLocal(); applyTeamColors(); render(); return;
       }
       if(el.classList.contains('teamName')){
         const id=el.dataset.team; const t=state.teams.find(x=>x.id===id); t.name=el.value; saveLocal(); render(); return;
@@ -565,7 +589,7 @@
       });
       state.teams[0].color=$('#setColorA').value;
       state.teams[1].color=$('#setColorB').value;
-      saveLocal(); render(); toast('Settings saved'); $('#settingsModal').close();
+      applyTeamColors(); saveLocal(); render(); toast('Settings saved'); $('#settingsModal').close();
       syncAll();
     });
 
@@ -625,6 +649,7 @@
     function hudInit(){
       $('#modOnly').classList.add('hidden');
       $('#hudOnly').classList.remove('hidden');
+      document.querySelector('#app .header')?.classList.add('hidden');
       document.body.classList.add('hud-centered','hud-gradient');
     }
 
@@ -714,6 +739,7 @@
       if(saved){ state=saved; state.weapons=saved.weapons||structuredClone(WEAPONS); state.rewards=saved.rewards||{...DEFAULTS.rewards}; state.theme=saved.theme||DEFAULTS.theme; }
       else { resetToDefaults(); }
       applyTheme(state.theme);
+      applyTeamColors();
       if(isHUD()){ hudInit(); const pid=new URLSearchParams(location.search).get('player');
         // set dynamic hud gradient based on team color (black -> team color)
         const found=findPlayer(pid); if(found && found.team){
@@ -726,5 +752,7 @@
 
     boot();
   </script>
+</body>
+</html>
 </body>
 </html>
