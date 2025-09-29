@@ -340,9 +340,6 @@
           <div class="small" style="margin-top:4px">
             Cash: <span class="number" data-editable>$<span data-field="cash">${p.cash}</span></span>
           </div>
-      <div class=\"small\" style=\"margin-top:4px\">
-        Kills: ${p.kills ?? 0}
-      </div>
           <div class="flex actions" style="margin-top:6px">
             <button class="btn" data-cash="+100">+100</button>
             <button class="btn" data-cash="-100">-100</button>
@@ -470,15 +467,7 @@
           /* Cash +/- */
           if(btn.dataset.cash){ const delta=parseInt(btn.dataset.cash)||0; player.cash=Math.max(0, player.cash+delta); saveLocal(); logEvent(`${player.name} cash ${delta>0?'+':''}${delta}`); pushPlayer(player); render(); return; }
           /* Kill gives reward */
-          if(btn.hasAttribute('data-kill')){
-      player.cash += state.rewards.kill;
-      player.kills = (player.kills ?? 0) + 1;
-      saveLocal();
-      logEvent(`${player.name} scored a kill (+$${state.rewards.kill}) — total kills: ${player.kills}`);
-      pushPlayer(player);
-      render();
-      return;
-    }
+          if(btn.hasAttribute('data-kill')){ player.cash+=state.rewards.kill; saveLocal(); logEvent(`${player.name} scored a kill (+$${state.rewards.kill})`); pushPlayer(player); render(); return; }
 
           /* Death: save lastWeapon and mark dead */
           if(btn.hasAttribute('data-death')){ if(!player.dead){ player.lastWeapon = player.weapon; player.dead=true; saveLocal(); logEvent(`${player.name} died`); pushPlayer(player); render(); } return; }
@@ -716,7 +705,6 @@
           </div>
           <div class="flex" style="justify-content:center;width:100%"><span style="font-weight:700">${data.name||'Player'}</span></div>
           <div class="cash-big">$${data.cash??0}</div>
-    <div class="small">Kills: ${data.kills ?? 0}</div>
           <div class="small">Weapon: ${data.weapon||'Starter'}</div>
           ${data.dead?'<div class="badge dead" style="margin-top:6px">⚰ Dead</div>':''}
           ${data.benched?'<div class="badge benched" style="margin-top:6px">Benched</div>':''}
@@ -784,7 +772,7 @@
       if(!fb.enabled) return;
       try{
         const {db, doc, setDoc} = window.__fb;
-        const data = { name:p.name, cash:p.cash, weapon:p.weapon, dead:p.dead, benched:p.benched, kills:p.kills ?? 0 };
+        const data = { name:p.name, cash:p.cash, weapon:p.weapon, dead:p.dead, benched:p.benched };
         await setDoc(doc(db,'players', p.id), data, {merge:true});
       }catch(e){ /* ignore */ }
     }
@@ -837,7 +825,6 @@
       if(approve){
         player.cash -= cost;
         player.weapon = data.weapon;
-    
         saveLocal(); logEvent(`${player.name} bought ${data.weapon} (-$${cost}) via request`);
         pushPlayer(player); render();
         updateRequestStatus(pid, 'approved');
@@ -863,13 +850,12 @@
     }
 
     function applyPlayerData(pid, data){
-      hudCache[pid] = { name:data.name, cash:data.cash, weapon:data.weapon, dead:data.dead, benched:data.benched, kills:data.kills ?? 0 };
+      hudCache[pid] = { name:data.name, cash:data.cash, weapon:data.weapon, dead:data.dead, benched:data.benched };
       const {player} = findPlayer(pid) || {};
       if(player){
         player.name = data.name;
         player.cash = data.cash;
         player.weapon = data.weapon;
-    
         player.dead = data.dead;
         player.benched = data.benched;
         saveLocal();
