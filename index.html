@@ -325,6 +325,13 @@ const WEAPONS={
 /* ======= Utils ======= */
 /* ======= Cloud Sync & Links ======= */
 
+function whenFSReady(fn, tries=0){
+  if (window.__fs) { fn(); return; }
+  if (tries > 200) { console.error("Firestore SDK not ready"); return; } // ~10s
+  setTimeout(()=> whenFSReady(fn, tries+1), 50);
+}
+
+
 function showToast(){
   const t=document.getElementById("toast");
   if(!t) return;
@@ -332,7 +339,7 @@ function showToast(){
   setTimeout(()=>{t.className=t.className.replace("show","");},2000);
 }
 
-const BASE_URL = "https://scooterbrewer.github.io/The-Finals-Scoreboard/";
+const BASE_URL = "https://scooterbrewer.github.io/Scoreboard/";
 function syncAllPlayersToFirestore(){
   if(!window.__fs) return;
   try{
@@ -697,11 +704,7 @@ function init(){
       flagsEl.innerHTML = flags.join(' ');
     };
 
-    if(window.__fs){
-      window.__fs.subscribe(playerId, (data)=> updateHUD(data));
-    } else {
-      updateHUD(null);
-    }
+    whenFSReady(()=> window.__fs.subscribe(playerId, (data)=> updateHUD(data)));
     return;
   }
 
