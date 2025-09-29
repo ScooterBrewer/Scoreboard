@@ -88,6 +88,23 @@
   .wep-row .label{flex:1}
   .settings-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
   .theme-toggle{display:flex;align-items:center;gap:8px}
+
+.btn-link {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  margin-top:4px;
+  display:block;
+  width:100%;
+}
+.btn-link:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
 </style>
 
 <!-- Firebase (module) -->
@@ -288,7 +305,7 @@ function syncAllPlayersToFirestore(){
   if(!window.__fs) return;
   try{
     state.teams.forEach(team=>team.players.forEach(p=>{
-      window.__fs.setPlayer(p.name, {
+      window.__fs.setPlayer(p.id, { name: p.name,
         cash: p.cash, currentWeapon: p.currentWeapon,
         dead: !!p.dead, bench: !!p.bench, team: team.name
       });
@@ -391,8 +408,8 @@ function makePlayerCard(team,tIdx,p,pIdx){
   const actions=document.createElement('div'); actions.className='actions';
   const copy=document.createElement('button'); 
   copy.className='btn btn-compact'; 
-  copy.textContent='Copy Link'; 
-  copy.onclick=()=>{ copyPlayerLink(p.name); };
+  copy.textContent='Live'; copy.classList.add('btn-link'); 
+  copy.onclick=()=>{ copyPlayerLink(p.id); };
 
   const kill=document.createElement('button'); kill.className='btn btn-success btn-compact'; kill.textContent='Kill';
   kill.onclick=()=>{ if(p.bench) return; p.cash+=settings.killReward; log(`${team.name}: ${p.name} Kill +${settings.killReward}`); persist(); render(); };
@@ -647,7 +664,12 @@ function init(){
     return;
   }
 
-  render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
+  
+// Ensure every player has a permanent UUID
+state.teams.forEach(team=>team.players.forEach(p=>{
+  if(!p.id){ try{ p.id = crypto.randomUUID(); } catch(e){ p.id = String(Math.random()).slice(2); } }
+}));
+render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
 }
 
 init();
