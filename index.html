@@ -704,30 +704,17 @@ function init(){
       flagsEl.innerHTML = flags.join(' ');
     };
 
-    whenFSReady(() => 
+    whenFSReady(() => {
       window.__fs.subscribe(playerId, (doc) => {
         if (!doc || !doc.data()) {
           updateHUD(null);
         } else {
           updateHUD(doc.data());
         }
-      })
       });
+    });
   render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
 }
-cashEl.textContent = '$' + (p.cash ?? 0);
-      wepEl.textContent = p.currentWeapon ?? 'Starter';
-      const flags=[];
-      if(p.dead) flags.push("<span style='background:var(--danger);color:#fff;padding:6px 10px;border-radius:10px;font-weight:700'>⚰ Dead</span>");
-      if(p.bench) flags.push("<span style='background:#6b7280;color:#fff;padding:6px 10px;border-radius:10px;font-weight:700'>BENCHED</span>");
-      flagsEl.innerHTML = flags.join(' ');
-
-    if(window.__fs){
-      window.__fs.subscribe(hudName, (data)=> updateHUD(data));
-    } else {
-      updateHUD(null);
-    }
-    return;
 
   
 // Ensure every player has a permanent UUID
