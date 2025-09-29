@@ -712,9 +712,7 @@ function init(){
           updateHUD(doc.data());
         }
       })
-    );return;
-  }
-
+      });
   render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
 }
 cashEl.textContent = '$' + (p.cash ?? 0);
