@@ -83,7 +83,34 @@
     .weapon-card{border:1px solid #262a2f;border-radius:12px;background:#0d1013;padding:10px;display:flex;flex-direction:column;gap:8px}
     .weapon-card img{width:100%;height:96px;object-fit:contain;background:#0b0e11;border-radius:8px}
     .weapon-card .meta{display:flex;justify-content:space-between;align-items:center}
-  </style>
+  
+.log-entry.request {
+  background: #fff3cd;
+  border-left: 4px solid #ff9800;
+  padding: 4px 6px;
+  margin: 4px 0;
+  font-weight: 500;
+}
+.log-entry.request button {
+  margin-left: 6px;
+  font-size: 0.85em;
+}
+
+
+#eventLog .log-entry.request {
+  background: #fff3cd;
+  border-left: 4px solid #ff9800;
+  padding: 4px 6px;
+  margin: 4px 0;
+  font-weight: 500;
+  color: #000 !important; /* force black text */
+}
+#eventLog .log-entry.request button {
+  margin-left: 6px;
+  font-size: 0.85em;
+}
+
+</style>
 </head>
 <body>
   <div class="app" id="app">
@@ -378,7 +405,15 @@
     function renderShop(){}
 
     function render(){
-      const rwKillEl = $('#rwKill'); if(rwKillEl) rwKillEl.textContent = `+${state.rewards.kill}`;
+      const rwKillEl = $('#rwKill');
+if (rwKillEl) {
+  rwKillEl.textContent = `+${state.rewards.kill}`;
+}
+try {
+  attachRequestListeners();
+} catch(e) {
+  console.error('attachRequestListeners error', e);
+}
       const rwCashEl = $('#rwCashout'); if(rwCashEl) rwCashEl.textContent = `+${state.rewards.cashout}`;
       const rwRoundEl = $('#rwRound'); if(rwRoundEl) rwRoundEl.textContent = `+${state.rewards.round}`;
       renderTeam('A','#teamA');
@@ -816,22 +851,29 @@
       }catch(e){ /* ignore */ }
     }
     function handleBuyRequest(pid, data){
-      const found = findPlayer(pid); if(!found) return;
-      const {team, player} = found;
-      const cost = parseInt(data.cost)||0;
-      const ok = confirm(`${player.name} requests ${data.weapon} for $${cost}. Approve?`);
-      const approve = ok && player.cash >= cost;
-      if(ok && player.cash < cost){ alert('Not enough cash'); }
-      if(approve){
-        player.cash -= cost;
-        player.weapon = data.weapon;
-        saveLocal(); logEvent(`${player.name} bought ${data.weapon} (-$${cost}) via request`);
-        pushPlayer(player); render();
-        updateRequestStatus(pid, 'approved');
-      } else if(ok){
-        updateRequestStatus(pid, 'denied');
-      }
-    }
+  const found = findPlayer(pid);
+  if(!found) return;
+  const { player } = found;
+  const cost = parseInt(data.cost) || 0;
+
+  // Avoid duplicate entries for same player
+  if(document.querySelector(`#req-${pid}`)) return;
+
+  // Create log entry with Approve/Deny buttons
+  const logId = `req-${pid}`;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry request';
+  entry.id = logId;
+  entry.innerHTML = `
+    ⚡ <strong>${player.name}</strong> requested <strong>${data.weapon}</strong> for $${cost}
+    <button class="btn approve" data-action="approve" data-logid="${logId}" data-pid="${pid}" data-weapon="${data.weapon}" data-cost="${cost}">Approve</button>
+    <button class="btn deny" data-action="deny" data-logid="${logId}" data-pid="${pid}">Deny</button>
+  `;
+  document.querySelector('#eventLog').prepend(entry);
+
+  updateRequestStatus(pid, 'pending');
+}
+    
     async function updateRequestStatus(pid, status){
       if(!fb.enabled) return;
       try{
@@ -883,7 +925,48 @@
 
     boot();
   </script>
-</body>
-</html>
+
+<script>
+// Approve/Deny button handler for buy requests (event delegation)
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('button');
+  if(!btn) return;
+
+  if(btn.dataset.action === 'approve'){
+    const pid = btn.dataset.pid;
+    const weapon = btn.dataset.weapon;
+    const cost = parseInt(btn.dataset.cost);
+    const logId = btn.dataset.logid;
+    const found = findPlayer(pid);
+    const player = found ? found.player : null;
+    if(player){
+      if(player.cash >= cost){
+        player.cash -= cost;
+        player.weapon = weapon;
+        saveLocal(); pushPlayer(player); render();
+        logEvent(`${player.name} bought ${weapon} (-$${cost}) via request`);
+        updateRequestStatus(pid, 'approved');
+      } else {
+        logEvent(`${player.name}'s request for ${weapon} denied (not enough cash)`);
+        updateRequestStatus(pid, 'denied');
+      }
+    }
+    document.getElementById(logId)?.remove();
+  }
+
+  if(btn.dataset.action === 'deny'){
+    const pid = btn.dataset.pid;
+    const logId = btn.dataset.logid;
+    const found = findPlayer(pid);
+    const player = found ? found.player : null;
+    if(player){
+      logEvent(`${player.name}'s request denied`);
+      updateRequestStatus(pid, 'denied');
+    }
+    document.getElementById(logId)?.remove();
+  }
+});
+</script>
+
 </body>
 </html>
