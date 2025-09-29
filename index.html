@@ -94,6 +94,7 @@
         <button class="btn" id="exportBtn">Export JSON</button>
         <button class="btn" id="importBtn">Import JSON</button>
         <button class="btn" id="slotsBtn">Save/Load</button>
+        <button class="btn" id="copyAllLinks">Copy All HUD Links</button>
         <button class="btn primary" id="settingsBtn">Settings</button>
       </div>
     </div>
@@ -150,6 +151,7 @@
       <label>Players per Team <input id="setPPT" type="number" min="1" max="12" class="input"></label>
       <label>Team A Color <input id="setColorA" type="color" class="input"></label>
       <label>Team B Color <input id="setColorB" type="color" class="input"></label>
+      <label>Public Base URL <input id="setPublicBase" type="url" placeholder="https://yourdomain.com/path" class="input"></label>
     </div>
     <h3>Weapon Costs</h3>
     <div id="weaponEditor" class="grid"></div>
@@ -157,6 +159,23 @@
       <button class="btn" id="settingsClose">Close</button>
       <button class="btn" id="settingsDefaults">Reset Defaults</button>
       <button class="btn primary" id="settingsSave">Save</button>
+    </div>
+  </dialog>
+
+  <!-- HUD Buy Request Modal (80% width) -->
+  <dialog id="hudBuyModal">
+    <h2>Request Weapon</h2>
+    <div class="flex" style="gap:6px;margin-bottom:8px">
+      <button class="btn" data-hud-tab="Light">Light</button>
+      <button class="btn" data-hud-tab="Medium">Medium</button>
+      <button class="btn" data-hud-tab="Heavy">Heavy</button>
+      <div class="flex" style="margin-left:auto">
+        <input id="hudBuyFilter" class="input" placeholder="Filter">
+      </div>
+    </div>
+    <div id="hudBuyGrid" class="grid cards"></div>
+    <div class="flex" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn" id="hudBuyClose">Close</button>
     </div>
   </dialog>
 
@@ -207,7 +226,8 @@
       ],
       playersPerTeam:5,
       rewards:{ kill:100, cashout:200, round:200 },
-      theme:'dark'
+      theme:'dark',
+      publicBaseUrl:''
     };
 
     const WEAPONS = {
@@ -243,7 +263,8 @@
         rewards:{...DEFAULTS.rewards},
         theme: localStorage.getItem('theme')||DEFAULTS.theme,
         weapons: structuredClone(WEAPONS),
-        log: []
+        log: [],
+        publicBaseUrl: localStorage.getItem('publicBaseUrl')||DEFAULTS.publicBaseUrl
       };
       saveLocal();
       applyTheme(state.theme);
@@ -292,7 +313,8 @@
     ==============================*/
     function playerCard(teamId,p){
       const team = state.teams.find(t=>t.id===teamId);
-      const baseUrl = location.href.split('?')[0];
+      const localBase = location.href.split('?')[0];
+      const baseUrl = (state.publicBaseUrl && state.publicBaseUrl.length>0) ? state.publicBaseUrl.replace(/\/?$/, '') : localBase;
       const hudLink = `${baseUrl}?player=${p.id}`;
       const isStarter = p.weapon==='Starter';
       const wCost = isStarter?0:getCost(p.weapon);
@@ -479,6 +501,17 @@
       }
 
       if(btn.id==='buyClose'){ $('#buyModal').close(); return; }
+
+      /* Copy all HUD links (moderator) */
+      if(btn.id==='copyAllLinks'){
+        const localBase = location.href.split('?')[0];
+        const baseUrl = (state.publicBaseUrl && state.publicBaseUrl.length>0) ? state.publicBaseUrl.replace(/\/?$/, '') : localBase;
+        const lines=[];
+        state.teams.forEach(t=>t.players.forEach(p=>{ lines.push(`${baseUrl}?player=${p.id}`); }));
+        const text = lines.join('\n');
+        navigator.clipboard.writeText(text).then(()=>toast('All HUD links copied'));
+        return;
+      }
     });
 
     /* Drag and drop reordering within team */
@@ -550,6 +583,40 @@
       renderBuyGrid();
     });
 
+    /* ============ HUD Buy Request UI ============ */
+    const hudBuyCtx = { playerId:null, tab:'Light' };
+    function openHudBuyModal(pid){
+      hudBuyCtx.playerId = pid; hudBuyCtx.tab = 'Light';
+      const f = $('#hudBuyFilter'); if(f) f.value='';
+      renderHudBuyGrid();
+      $('#hudBuyModal').showModal();
+    }
+    function renderHudBuyGrid(){
+      const grid = $('#hudBuyGrid'); if(!grid) return; grid.innerHTML='';
+      const term = ($('#hudBuyFilter')?.value||'').toLowerCase();
+      const items = state.weapons[hudBuyCtx.tab];
+      Object.entries(items).forEach(([name,cost])=>{
+        if(term && !name.toLowerCase().includes(term)) return;
+        const card=document.createElement('div');
+        card.className='weapon-card';
+        card.innerHTML=`
+          <img src="${weaponImgSrc(name)}" alt="${name}" onerror="this.src='';this.style.background='transparent'">
+          <div class="meta"><strong>${name}</strong><span class="number">$${cost}</span></div>
+          <button class="btn success" data-hud-send-buy="${name}" data-cost="${cost}">Request</button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    document.addEventListener('click', (e)=>{
+      const hudBtn = e.target.closest('button'); if(!hudBtn) return;
+      if(hudBtn.dataset.hudRequestBuy){ openHudBuyModal(hudBtn.dataset.hudRequestBuy); return; }
+      if(hudBtn.dataset.hudSendBuy){
+        const weapon=hudBtn.dataset.hudSendBuy; const cost=parseInt(hudBtn.dataset.cost)||0; const pid=hudBuyCtx.playerId; sendBuyRequest(pid, weapon, cost); $('#hudBuyModal').close(); toast('Request sent'); return; }
+      if(hudBtn.id==='hudBuyClose'){ $('#hudBuyModal').close(); return; }
+      if(hudBtn.dataset.hudTab){ hudBuyCtx.tab=hudBtn.dataset.hudTab; renderHudBuyGrid(); return; }
+    });
+    document.addEventListener('change', (e)=>{ if(e.target.id==='hudBuyFilter'){ renderHudBuyGrid(); } });
+
     function adjustMass(amt,scope){
       if(scope==='all'){ state.teams.forEach(t=>t.players.forEach(p=>p.cash=Math.max(0,p.cash+amt))); }
       else { const t=state.teams.find(x=>x.id===scope); t.players.forEach(p=>p.cash=Math.max(0,p.cash+amt)); }
@@ -591,6 +658,7 @@
       });
       state.teams[0].color=$('#setColorA').value;
       state.teams[1].color=$('#setColorB').value;
+      const pb=$('#setPublicBase').value.trim(); state.publicBaseUrl = pb; localStorage.setItem('publicBaseUrl', pb);
       applyTeamColors(); saveLocal(); render(); toast('Settings saved'); $('#settingsModal').close();
       syncAll();
     });
@@ -611,7 +679,7 @@
       inp.click();
     });
 
-    $('#settingsBtn').addEventListener('click', ()=>$('#settingsModal').showModal());
+    $('#settingsBtn').addEventListener('click', ()=>{ $('#settingsModal').showModal(); $('#setPublicBase').value = state.publicBaseUrl||''; });
     $('#slotsBtn').addEventListener('click', ()=>$('#slotsModal').showModal());
     $('#buyClose').addEventListener('click', ()=>$('#buyModal').close());
 
@@ -640,6 +708,9 @@
           <div class="small">Weapon: ${data.weapon||'Starter'}</div>
           ${data.dead?'<div class="badge dead" style="margin-top:6px">⚰ Dead</div>':''}
           ${data.benched?'<div class="badge benched" style="margin-top:6px">Benched</div>':''}
+          <div class="flex" style="margin-top:8px;justify-content:center">
+            <button class="btn success" data-hud-request-buy="${player?.id||pid}">Request Buy</button>
+          </div>
         </div>`;
     }
 
@@ -692,6 +763,8 @@
       if(isHUD()){
         const pid=new URLSearchParams(location.search).get('player');
         startFirestoreListener(pid);
+      } else {
+        attachRequestListeners();
       }
     });
 
@@ -710,6 +783,60 @@
         const ps=[];
         state.teams.forEach(t=>t.players.forEach(p=>ps.push(pushPlayer(p))));
         await Promise.all(ps);
+      }catch(e){ /* ignore */ }
+    }
+
+    /* Send HUD buy request via Firestore */
+    async function sendBuyRequest(pid, weapon, cost){
+      if(!fb.enabled) return;
+      try{
+        const {db, doc, setDoc} = window.__fb;
+        const req = { type:'buy', playerId:pid, weapon, cost, at:Date.now(), status:'pending' };
+        await setDoc(doc(db,'requests', pid), req, {merge:true});
+      }catch(e){ /* ignore */ }
+    }
+
+    /* Moderator: listen for HUD requests for all known players */
+    function attachRequestListeners(){
+      if(!fb.enabled) return;
+      try{
+        state.teams.forEach(t=>t.players.forEach(p=>startRequestListener(p.id)));
+      }catch(e){ /* ignore */ }
+    }
+    function startRequestListener(pid){
+      if(!fb.enabled) return;
+      try{
+        const {db, doc, onSnapshot} = window.__fb;
+        onSnapshot(doc(db,'requests', pid), (snap)=>{
+          const data=snap.data();
+          if(data && data.status==='pending' && data.type==='buy'){
+            handleBuyRequest(pid, data);
+          }
+        });
+      }catch(e){ /* ignore */ }
+    }
+    function handleBuyRequest(pid, data){
+      const found = findPlayer(pid); if(!found) return;
+      const {team, player} = found;
+      const cost = parseInt(data.cost)||0;
+      const ok = confirm(`${player.name} requests ${data.weapon} for $${cost}. Approve?`);
+      const approve = ok && player.cash >= cost;
+      if(ok && player.cash < cost){ alert('Not enough cash'); }
+      if(approve){
+        player.cash -= cost;
+        player.weapon = data.weapon;
+        saveLocal(); logEvent(`${player.name} bought ${data.weapon} (-$${cost}) via request`);
+        pushPlayer(player); render();
+        updateRequestStatus(pid, 'approved');
+      } else if(ok){
+        updateRequestStatus(pid, 'denied');
+      }
+    }
+    async function updateRequestStatus(pid, status){
+      if(!fb.enabled) return;
+      try{
+        const {db, doc, setDoc} = window.__fb;
+        await setDoc(doc(db,'requests', pid), { status, handledAt:Date.now() }, {merge:true});
       }catch(e){ /* ignore */ }
     }
 
@@ -751,7 +878,7 @@
         } else { document.documentElement.style.setProperty('--hud-color', '#2563eb'); }
         renderHUD(pid);
       }
-      else { render(); }
+      else { render(); attachRequestListeners(); }
     }
 
     boot();
