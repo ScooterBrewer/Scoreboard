@@ -837,7 +837,7 @@
       if(approve){
         player.cash -= cost;
         player.weapon = data.weapon;
-    player.kills = data.kills ?? player.kills ?? 0;
+    
         saveLocal(); logEvent(`${player.name} bought ${data.weapon} (-$${cost}) via request`);
         pushPlayer(player); render();
         updateRequestStatus(pid, 'approved');
@@ -869,7 +869,7 @@
         player.name = data.name;
         player.cash = data.cash;
         player.weapon = data.weapon;
-    player.kills = data.kills ?? player.kills ?? 0;
+    
         player.dead = data.dead;
         player.benched = data.benched;
         saveLocal();
