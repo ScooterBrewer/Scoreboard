@@ -54,6 +54,10 @@
     .remove-fab{position:absolute;top:8px;right:8px;background:#ffffff12;border:1px solid #ffffff22;border-radius:999px;padding:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:.15s;color:#fff;z-index:2}
     .player:hover .remove-fab{opacity:1}
     .remove-fab:hover{background:#ffffff22}
+    .dup-fab{position:absolute;top:8px;right:26px;background:#ffffff18;border:1px solid #ffffff22;border-radius:999px;padding:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:.15s;color:#fff;z-index:2}
+    .player:hover .dup-fab{opacity:1}
+    .dup-fab:hover{background:#ffffff28}
+    .drag-over{outline:2px dashed var(--ring); outline-offset:2px}
     svg.icon{width:22px;height:22px;fill:#fff}
     .log{max-height:260px;overflow:auto;font-size:13px}
     .toast{position:fixed;right:16px;bottom:16px;background:#11181c;border:1px solid #27323a;color:#e6f1f8;padding:10px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.2s}
@@ -268,10 +272,11 @@
       const hudLink = `${baseUrl}?player=${p.id}`;
       const wCost = p.weapon==='Starter'?0:getCost(p.weapon);
       return `
-        <div class="player" data-player="${p.id}" data-team="${teamId}">
+        <div class="player" data-player="${p.id}" data-team="${teamId}" draggable="true">
           <button class="copy-fab" title="Copy HUD Link" data-copy="${hudLink}">
             <svg class="icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>
           </button>
+          <button class="dup-fab" title="Duplicate Player" data-duplicate>⧉</button>
           <button class="remove-fab" title="Remove Player" data-remove-player>❌</button>
           <div class="weapon-slot">
             <img src="${weaponImgSrc(p.weapon)}" alt="${p.weapon}" onerror="this.src='';this.style.background='transparent'" />
@@ -406,6 +411,8 @@
         const pid = playerEl.dataset.player;
         const { team, player } = findPlayer(pid) || {};
         if(player){
+          /* Duplicate player */
+          if(btn.hasAttribute('data-duplicate')){ const idx=team.players.findIndex(p=>p.id===pid); if(idx>-1){ const copy={...player, id:uid(), name:player.name+" (copy)"}; team.players.splice(idx+1,0,copy); saveLocal(); logEvent(`Duplicated ${player.name} on ${team.name}`); render(); syncAll(); } return; }
           /* Remove player */
           if(btn.hasAttribute('data-remove-player')){ const idx=team.players.findIndex(p=>p.id===pid); if(idx>-1){ const removed=team.players.splice(idx,1)[0]; logEvent(`Removed player ${removed.name} from ${team.name}`); saveLocal(); render(); syncAll(); } return; }
 
@@ -446,6 +453,37 @@
       }
 
       if(btn.id==='buyClose'){ $('#buyModal').close(); return; }
+    });
+
+    /* Drag and drop reordering within team */
+    let dragPid=null;
+    document.addEventListener('dragstart', (e)=>{
+      const el=e.target.closest('.player'); if(!el) return;
+      dragPid = el.dataset.player;
+      e.dataTransfer?.setData('text/plain', dragPid);
+      e.dataTransfer?.setDragImage?.(el, 20, 20);
+    });
+    document.addEventListener('dragover', (e)=>{
+      const el=e.target.closest('.player'); if(!el) return;
+      e.preventDefault(); el.classList.add('drag-over');
+    });
+    document.addEventListener('dragleave', (e)=>{
+      const el=e.target.closest('.player'); if(!el) return;
+      el.classList.remove('drag-over');
+    });
+    document.addEventListener('drop', (e)=>{
+      const target=e.target.closest('.player'); if(!target || !dragPid) return;
+      e.preventDefault(); target.classList.remove('drag-over');
+      const targetPid=target.dataset.player;
+      if(!targetPid || targetPid===dragPid) { dragPid=null; return; }
+      const team = state.teams.find(t=>t.players.some(p=>p.id===targetPid));
+      if(!team) { dragPid=null; return; }
+      const fromIdx = team.players.findIndex(p=>p.id===dragPid);
+      const toIdx = team.players.findIndex(p=>p.id===targetPid);
+      if(fromIdx<0 || toIdx<0) { dragPid=null; return; }
+      const [moved]=team.players.splice(fromIdx,1);
+      team.players.splice(toIdx,0,moved);
+      dragPid=null; saveLocal(); render(); logEvent(`Reordered ${moved.name} in ${team.name}`); syncAll();
     });
 
     document.addEventListener('change', e=>{
