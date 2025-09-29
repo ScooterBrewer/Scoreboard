@@ -1,657 +1,692 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>The Finals — Moderator Scoreboard</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Finals — Moderator Scoreboard & Live HUD</title>
   <style>
-    :root {
-      --bg:#0f1113; --panel:#171a1f; --muted:#8fa1b3; --line:rgba(255,255,255,.08); --ink:#e8eef5;
-      --btn:#2f8ef3; --ok:#2fbf6e; --warn:#ffb86b; --danger:#ff6b6b; --card:#14171b; --chip:#20252d;
-      --accent:#8ab8ff; --cost:#ffd2a8;
-      --teamA:#2563eb; --teamB:#ef4444;
+    :root{
+      --bg:#0f1113;--panel:#15181b;--panel2:#1b2024;--text:#e5e7eb;--muted:#9ca3af;
+      --blue:#2563eb;--red:#ef4444;--ring:#3b82f6;--warn:#f59e0b;--danger:#ef4444;--success:#22c55e;
     }
-    html[data-theme="light"]{
-      --bg:#f6f8fb; --panel:#ffffff; --muted:#5c6b7a; --line:rgba(0,0,0,.08); --ink:#0e1726;
-      --btn:#2563eb; --ok:#16a34a; --warn:#f59e0b; --danger:#ef4444; --card:#f9fafb; --chip:#eef2f7;
-      --accent:#0ea5e9; --cost:#b45309;
+    [data-theme="light"]{
+      --bg:#f6f7f9;--panel:#ffffff;--panel2:#f1f5f9;--text:#0f172a;--muted:#475569;--ring:#2563eb;--warn:#b45309;--danger:#dc2626;--success:#16a34a;
     }
-    *{box-sizing:border-box}
-    body{font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:var(--bg);color:var(--ink)}
-    header{background:linear-gradient(90deg,var(--panel),var(--chip));padding:10px 16px;border-bottom:1px solid var(--line)}
-    .header-inner{display:flex;gap:10px;align-items:center;justify-content:space-between;max-width:1500px;margin:0 auto}
-    .title{font-size:20px;font-weight:800}
-    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .btn{padding:8px 12px;border-radius:8px;border:1px solid var(--line);cursor:pointer;font-weight:600;background:var(--chip);color:var(--ink)}
-    .btn:hover{filter:brightness(1.1)}
-    .btn-primary{background:var(--btn);color:#fff;border-color:transparent}
-    .btn-success{background:var(--ok);color:#042;border-color:transparent}
-    .btn-warning{background:var(--warn);color:#2a1700;border-color:transparent}
-    .btn-danger{background:var(--danger);color:#fff;border-color:transparent}
-    .btn-compact{padding:6px 8px;font-size:13px}
-    .layout{display:flex;gap:16px;max-width:1500px;margin:0 auto;padding:14px}
-    .teams{display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1}
-    @media (max-width:1200px){ .teams{grid-template-columns:1fr;} }
-    .team-card{background:var(--panel);border-radius:16px;flex:1;min-width:420px;box-shadow:0 6px 22px rgba(0,0,0,.15);border:1px solid var(--line);display:flex;flex-direction:column}
-    .team-header{background:var(--teamcolor,#333);color:#fff;padding:12px 16px;border-top-left-radius:16px;border-top-right-radius:16px;display:flex;justify-content:space-between;align-items:center}
-    .team-header h2{margin:0;font-size:18px}
-    .team-head-actions{display:flex;gap:6px;flex-wrap:wrap}
-    .team-players{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:12px;padding:12px}
-    @media (max-width:600px){ .team-players{grid-template-columns:1fr;} }
-    .player-card{background:var(--card);padding:10px;border-radius:12px;border:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.1);display:flex;flex-direction:column;gap:8px}
-    .player-top{display:flex;justify-content:space-between;align-items:center}
-    .player-index{font-size:12px;color:var(--muted)}
-    .player-name{font-weight:800;cursor:pointer;font-size:15px}
-    .weapon-box{text-align:center}
-    .weapon-box img{width:48px;height:48px;object-fit:contain;background:#101418;border-radius:10px;border:1px solid var(--line);margin-bottom:6px}
-    .weapon-name{font-weight:700;font-size:14px}
-    .badges{display:flex;gap:6px;justify-content:center;margin-top:4px;flex-wrap:wrap}
-    .badge{padding:2px 6px;font-size:11px;border-radius:6px;color:#fff}
-    .badge.dead{background:var(--danger)}
-    .badge.bench{background:#6b7280}
-    .cash-box{text-align:center}
-    .cash-value{font-size:18px;font-weight:800;cursor:pointer;display:block}
-    .quick-adjust{display:flex;gap:6px;justify-content:center;margin-top:6px}
-    .actions{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
-    .actions .btn{width:100%}
-    .team-footer{padding:12px;text-align:center;border-top:1px solid var(--line)}
-    .team-footer .total{font-weight:700;font-size:16px}
-    .right{flex:0 0 340px;display:flex;flex-direction:column;gap:12px}
-    .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-    .panel h3{margin:0 0 8px}
-    .hidden{display:none}
-    .log{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow:auto}
-    .log-entry{border-bottom:1px dashed var(--line);padding:4px 0}
-    .overlay{display:none;position:fixed;inset:0;background:rgba(2,6,12,.7);z-index:1000;align-items:center;justify-content:center;padding:20px}
-    .modal{background:var(--panel);border-radius:14px;padding:18px;max-width:1100px;width:100%;max-height:92vh;overflow:auto;color:var(--ink);border:1px solid var(--line);box-shadow:0 18px 40px rgba(0,0,0,.35)}
-    .modal h3{margin:0 0 10px}
-    .grid-weapons{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px}
-    .weapon-card{background:var(--card);padding:12px;border-radius:12px;text-align:center;cursor:pointer;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;transition:transform .08s ease}
-    .weapon-card:hover{transform:translateY(-2px)}
-    .weapon-card img{width:100%;max-width:120px;height:120px;object-fit:contain;margin-bottom:8px;background:#0c0c0c;border-radius:8px;border:1px solid var(--line)}
-    .weapon-name{font-weight:700;margin-top:4px}
-    .weapon-cost{margin-top:2px;font-weight:800;color:var(--cost)}
-    .buy-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}
-    .input{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-width:220px}
-    .switch{display:inline-flex;align-items:center;gap:8px}
-    .switch input{accent-color:var(--btn)}
-    .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-    .card h4{margin:0 0 10px}
-    .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .kv .input{width:100%}
-    .weps-editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
-    .wep-row{display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--card);padding:8px;border-radius:10px}
-    .wep-row .label{flex:1}
-    .settings-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
-    .theme-toggle{display:flex;align-items:center;gap:8px}
-    .btn-link{font-size:11px;padding:2px 6px;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--muted);margin-top:4px;display:block;width:100%}
-    .btn-link:hover{color:var(--ink);border-color:var(--accent)}
-    #toast{visibility:hidden;min-width:160px;margin-left:-80px;background-color:#333;color:#fff;text-align:center;border-radius:4px;padding:8px;position:fixed;z-index:1000;left:50%;bottom:40px;font-size:14px;opacity:0;transition:opacity 0.5s,bottom 0.5s}
-    #toast.show{visibility:visible;opacity:1;bottom:60px}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,Segoe UI,Inter,Roboto,Arial,sans-serif}
+    .app{max-width:1200px;margin:0 auto;padding:20px}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .flex{display:flex;gap:8px;align-items:center}
+    .btn{background:#1b2126;border:1px solid #2a3036;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--ring);border-color:var(--ring);color:#fff}
+    .btn.warn{background:var(--warn);border-color:var(--warn);color:#111}
+    .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+    .btn.success{background:var(--success);border-color:var(--success);color:#051b0b}
+    .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #23272b;border-radius:14px;padding:14px}
+    .row{display:flex;gap:16px;flex-wrap:wrap}
+    .col{flex:1 1 360px;min-width:320px}
+    .kpi{background:#0d1013;border:1px solid #262a2f;border-radius:12px;padding:10px;min-width:160px}
+    .timer{font-size:28px;font-weight:800}
+    .teamHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .input{background:#0f1419;border:1px solid #2b3138;border-radius:10px;color:var(--text);padding:8px}
+    .grid{display:grid;gap:12px}
+    .grid.cards{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+    [id^="plist-"]{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .player{position:relative;display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:#0d1013;border:2px solid #262a2f;border-radius:10px;padding:8px;transition:0.2s;box-shadow:0 1px 0 #0008;width:100%}
+    .player[data-team="A"]:hover{border-color:var(--blue);box-shadow:0 0 6px var(--blue)}
+    .player[data-team="B"]:hover{border-color:var(--red);box-shadow:0 0 6px var(--red)}
+    .weapon-slot{width:100%;display:flex;justify-content:center;align-items:center;background:transparent;border:none;border-radius:10px;margin-bottom:4px}
+    .weapon-slot img{display:block;border-radius:10px;max-width:140px;max-height:72px;width:auto;height:auto}
+    .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+    .actions .btn{flex:1 1 calc(50% - 6px);padding:6px 10px}
+    button[data-kill]{background:var(--danger);border-color:var(--danger);color:#fff}
+    .badge{font-size:12px;padding:2px 6px;border-radius:999px;border:1px solid #0003}
+    .dead{background:#2a0f12;border-color:#4b1b1f;color:#fca5a5}
+    .benched{background:#26220f;border-color:#423916;color:#fde68a}
+    .number{padding:2px 6px;border-radius:6px;background:#151a20;border:1px solid #20262c;font-size:13px}
+    .number[data-editable]{cursor:pointer}
+    .small{font-size:12px}
+    .uuid{display:none} /* UUID text removed as requested */
+    /* Hover copy button (visible only on hover) */
+    .copy-fab{position:absolute;top:8px;right:44px;background:#ffffff22;border:1px solid #ffffff33;border-radius:999px;padding:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:.15s;z-index:2}
+    .player:hover .copy-fab{opacity:1}
+    .copy-fab:hover{background:#ffffff33}
+    .remove-fab{position:absolute;top:8px;right:8px;background:#ffffff12;border:1px solid #ffffff22;border-radius:999px;padding:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:.15s;color:#fff;z-index:2}
+    .player:hover .remove-fab{opacity:1}
+    .remove-fab:hover{background:#ffffff22}
+    svg.icon{width:22px;height:22px;fill:#fff}
+    .log{max-height:260px;overflow:auto;font-size:13px}
+    .toast{position:fixed;right:16px;bottom:16px;background:#11181c;border:1px solid #27323a;color:#e6f1f8;padding:10px 14px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.2s}
+    .toast.show{opacity:1;transform:translateY(0)}
+    dialog{border:none;border-radius:14px;padding:16px;background:var(--panel);color:var(--text)}
+    /* Widened modals */
+    #settingsModal{width:80vw;max-width:80vw}
+    #buyModal{width:80vw;max-width:80vw}
+    @media (max-width:700px){
+      #settingsModal,#buyModal{width:95vw;max-width:95vw}
+    }
+    .hud{max-width:600px;margin:40px auto}
+    .hud .player{align-items:center;border-width:3px}
+    .hud .cash-big{font-size:36px;font-weight:800;color:#22c55e}
+    .hud-centered{min-height:100vh;display:flex;align-items:center;justify-content:center}
+    body.hud-gradient{background:linear-gradient(135deg, #000000 0%, var(--hud-color) 100%) !important;min-height:100vh}
+    body.hud-gradient .hud.panel{background:transparent;border:none;box-shadow:none}
+    .hidden{display:none !important}
+    /* Weapon cards shared style */
+    .weapon-card{border:1px solid #262a2f;border-radius:12px;background:#0d1013;padding:10px;display:flex;flex-direction:column;gap:8px}
+    .weapon-card img{width:100%;height:96px;object-fit:contain;background:#0b0e11;border-radius:8px}
+    .weapon-card .meta{display:flex;justify-content:space-between;align-items:center}
   </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="header">
+      <h1>Moderator Scoreboard — <span style="color:var(--muted)">The Finals</span></h1>
+      <div class="flex">
+        <button class="btn" id="themeBtn">Toggle Theme</button>
+        <button class="btn" id="exportBtn">Export JSON</button>
+        <button class="btn" id="importBtn">Import JSON</button>
+        <button class="btn" id="slotsBtn">Save/Load</button>
+        <button class="btn primary" id="settingsBtn">Settings</button>
+      </div>
+    </div>
 
-  <!-- Firebase (module) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    <!-- HUD container -->
+    <div id="hudOnly" class="hidden">
+      <div class="hud panel">
+        <div class="header"><h2>Live HUD</h2><div class="small" style="color:var(--muted)">Auto-updates</div></div>
+        <div id="hudPlayer" class="player"></div>
+      </div>
+    </div>
 
+    <!-- Moderator-only controls -->
+    <div id="modOnly">
+      <div class="row">
+        <div class="kpi">
+          <div>Quick</div>
+          <div class="flex" style="flex-wrap:wrap">
+            <button class="btn" id="endRound">End Round</button>
+            <button class="btn" id="cashoutA">Cashout A</button>
+            <button class="btn" id="cashoutB">Cashout B</button>
+            <button class="btn warn" id="resetCash">Reset Cash</button>
+            <button class="btn warn" id="clearWeapons">Clear Weapons</button>
+            <button class="btn danger" id="resetMatch">Reset Match</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <div class="col"><div class="panel" id="teamA"></div></div>
+        <div class="col"><div class="panel" id="teamB"></div></div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <div class="col">
+          <div class="panel">
+            <h3 style="margin:0 0 8px 0">Event Log</h3>
+            <div id="eventLog" class="log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Toast</div>
+
+  <!-- Settings Modal (80% width) -->
+  <dialog id="settingsModal">
+    <h2>Settings</h2>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <label>Kill Reward <input id="setKill" type="number" class="input"></label>
+      <label>Cashout Reward <input id="setCash" type="number" class="input"></label>
+      <label>Round Reward <input id="setRound" type="number" class="input"></label>
+      <label>Players per Team <input id="setPPT" type="number" min="1" max="12" class="input"></label>
+      <label>Team A Color <input id="setColorA" type="color" class="input"></label>
+      <label>Team B Color <input id="setColorB" type="color" class="input"></label>
+    </div>
+    <h3>Weapon Costs</h3>
+    <div id="weaponEditor" class="grid"></div>
+    <div class="flex" style="margin-top:12px;justify-content:flex-end">
+      <button class="btn" id="settingsClose">Close</button>
+      <button class="btn" id="settingsDefaults">Reset Defaults</button>
+      <button class="btn primary" id="settingsSave">Save</button>
+    </div>
+  </dialog>
+
+  <!-- Save/Load Modal (small) -->
+  <dialog id="slotsModal">
+    <h2>Save / Load</h2>
+    <div class="grid">
+      <div class="flex">
+        <button class="btn" data-slot-save="1">Save 1</button>
+        <button class="btn" data-slot-load="1">Load 1</button>
+      </div>
+      <div class="flex">
+        <button class="btn" data-slot-save="2">Save 2</button>
+        <button class="btn" data-slot-load="2">Load 2</button>
+      </div>
+      <div class="flex">
+        <button class="btn" data-slot-save="3">Save 3</button>
+        <button class="btn" data-slot-load="3">Load 3</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Buy Weapon Modal (80% width) -->
+  <dialog id="buyModal">
+    <h2>Buy Weapon</h2>
+    <div class="flex" style="gap:6px;margin-bottom:8px">
+      <button class="btn" data-tab="Light">Light</button>
+      <button class="btn" data-tab="Medium">Medium</button>
+      <button class="btn" data-tab="Heavy">Heavy</button>
+      <div class="flex" style="margin-left:auto">
+        <input id="buyFilter" class="input" placeholder="Filter">
+      </div>
+    </div>
+    <div id="buyGrid" class="grid cards"></div>
+    <div class="flex" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn" id="buyClose">Close</button>
+    </div>
+  </dialog>
+
+  <script>
+    /* =============================
+       Data & Defaults
+    ==============================*/
+    const DEFAULTS = {
+      teams:[
+        { id:'A', name:'Team A', color:'#2563eb' },
+        { id:'B', name:'Team B', color:'#ef4444' }
+      ],
+      playersPerTeam:5,
+      rewards:{ kill:100, cashout:200, round:200 },
+      theme:'dark'
+    };
+
+    const WEAPONS = {
+      Light: {"93R":450,"ARN-220":400,"Dagger":200,"LH1":300,"M11":350,"M26 Matter":250,"Recurve Bow":300,"SH1900":350,"SR-84":300,"Sword":200,"Throwing Knives":250,"V9S":150,"XP-54":250},
+      Medium: {"AKM":300,"CB-01 Repeater":350,"Cerberus 12GA":250,"CL-40":400,"Dual Blades":250,"FAMAS":450,"FCAR":400,"Model 1887":300,"P90":400,"Pike-556":350,"R.357":200,"Riot Shield":250},
+      Heavy: {".50 Akimbo":400,"BFR Titan":500,"Flamethrower":250,"KS-23":200,"Lewis Gun":300,"M134 Minigun":350,"M60":350,"MGL32":150,"SA1216":450,"ShAK-50":400,"Sledgehammer":200,"Spear":150}
+    };
+
+    let state = null;
+    let timer = { running:false, startAt:0, elapsed:0 };
+    const $ = sel=>document.querySelector(sel);
+    const $$ = sel=>Array.from(document.querySelectorAll(sel));
+    const uid = ()=>crypto.randomUUID();
+    const saveLocal = ()=>localStorage.setItem('finals_state', JSON.stringify(state));
+    const loadLocal = ()=>JSON.parse(localStorage.getItem('finals_state')||'null');
+
+    function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1200); }
+
+    function defaultTeamBlock(id,color,idx){
+      return {
+        id, name: DEFAULTS.teams[idx].name, color,
+        players: Array.from({length: DEFAULTS.playersPerTeam}).map((_,i)=>({
+          id: uid(), name:`Player ${i+1}`, cash:0, weapon:"Starter", dead:false, benched:false
+        }))
+      };
+    }
+
+    function resetToDefaults(){
+      state = {
+        teams:[ defaultTeamBlock('A', DEFAULTS.teams[0].color,0), defaultTeamBlock('B', DEFAULTS.teams[1].color,1) ],
+        rewards:{...DEFAULTS.rewards},
+        theme: localStorage.getItem('theme')||DEFAULTS.theme,
+        weapons: structuredClone(WEAPONS),
+        log: []
+      };
+      saveLocal();
+      applyTheme(state.theme);
+      render();
+    }
+
+    function applyTheme(t){ document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark'); localStorage.setItem('theme', t); }
+
+    const IMAGE_NAME_MAP = {
+      // Light
+      "93R":"93R","ARN-220":"ARN220","Dagger":"Dagger","LH1":"LH1","M11":"M11","M26 Matter":"M26Matter","Recurve Bow":"RecurveBow","SH1900":"SH1900","SR-84":"SR84","Sword":"Sword","Throwing Knives":"ThrowingKnives","V9S":"V9S","XP-54":"XP54",
+      // Medium
+      "AKM":"AKM","CB-01 Repeater":"CB01Repeater","Cerberus 12GA":"Cerberus12GA","CL-40":"CL40","Dual Blades":"DualBlades","FAMAS":"FAMAS","FCAR":"FCAR","Model 1887":"Model1887","P90":"P90","Pike-556":"Pike556","R.357":"R357","Riot Shield":"RiotShield",
+      // Heavy
+      ".50 Akimbo":"50Akimbo","BFR Titan":"BFRTitan","Flamethrower":"Flamethrower","KS-23":"KS23","Lewis Gun":"LewisGun","M134 Minigun":"M134Minigun","M60":"M60","MGL32":"MGL32","SA1216":"SA1216","ShAK-50":"ShAK50","Sledgehammer":"Sledgehammer","Spear":"Spear"
+    };
+
+    function weaponImgSrc(name){
+      const logical = name === 'Starter' ? 'Dagger' : name;
+      const fileBase = IMAGE_NAME_MAP[logical] || logical.replace(/[^a-z0-9]/gi,'');
+      // Use relative path for GitHub Pages
+      return "images/" + fileBase + ".png";
+    }
+
+    /* =============================
+       Rendering
+    ==============================*/
+    function playerCard(teamId,p){
+      const team = state.teams.find(t=>t.id===teamId);
+      const baseUrl = location.href.split('?')[0];
+      const hudLink = `${baseUrl}?player=${p.id}`;
+      const wCost = p.weapon==='Starter'?0:getCost(p.weapon);
+      return `
+        <div class="player" data-player="${p.id}" data-team="${teamId}">
+          <button class="copy-fab" title="Copy HUD Link" data-copy="${hudLink}">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 18H8V7h11v16z"/></svg>
+          </button>
+          <button class="remove-fab" title="Remove Player" data-remove-player>❌</button>
+          <div class="weapon-slot">
+            <img src="${weaponImgSrc(p.weapon)}" alt="${p.weapon}" onerror="this.src='';this.style.background='transparent'" />
+          </div>
+          <div class="flex" style="flex-wrap:wrap">
+            <input class="input name" value="${p.name}" style="min-width:160px">
+            ${p.dead?'<span class="badge dead">⚰ Dead</span>':''}
+            ${p.benched?'<span class="badge benched">Benched</span>':''}
+          </div>
+          <div class="small" style="margin-top:4px">
+            Weapon: <strong>${p.weapon}</strong> <span class="number" style="margin-left:6px">$<span data-field="wcost">${wCost}</span></span>
+          </div>
+          <div class="small" style="margin-top:4px">
+            Cash: <span class="number" data-editable>$<span data-field="cash">${p.cash}</span></span>
+          </div>
+          <div class="flex actions" style="margin-top:6px">
+            <button class="btn" data-cash="+100">+100</button>
+            <button class="btn" data-cash="-100">-100</button>
+            <button class="btn" data-kill>Kill</button>
+            <button class="btn" data-death>Death</button>
+            <button class="btn" data-revive>Revive</button>
+            <button class="btn success" data-buy="${p.id}">🛒 Buy</button>
+          </div>
+        </div>`;
+    }
+
+    function getCost(weapon){
+      for(const [grp,obj] of Object.entries(state.weapons)) if(weapon in obj) return obj[weapon];
+      return 0;
+    }
+
+    function renderTeam(teamId, mountSel){
+      const team = state.teams.find(t=>t.id===teamId);
+      const mount = $(mountSel);
+      mount.innerHTML = `
+        <div class="teamHeader">
+          <div class="flex">
+            <input class="input teamName" data-team="${teamId}" value="${team.name}" style="font-weight:800">
+            <input class="input" type="color" value="${team.color}" data-team-color="${teamId}">
+          </div>
+          <div class="flex">
+            <button class="btn" data-add-player="${teamId}">+ Add Player</button>
+            <button class="btn warn" data-remove-last="${teamId}">Remove Last Player</button>
+          </div>
+        </div>
+        <div class="grid" id="plist-${teamId}"></div>
+      `;
+      $(`#plist-${teamId}`).innerHTML = team.players.map(p=>playerCard(teamId,p)).join('');
+    }
+
+    function renderShop(){}
+
+    function render(){
+      const rwKillEl = $('#rwKill'); if(rwKillEl) rwKillEl.textContent = `+${state.rewards.kill}`;
+      const rwCashEl = $('#rwCashout'); if(rwCashEl) rwCashEl.textContent = `+${state.rewards.cashout}`;
+      const rwRoundEl = $('#rwRound'); if(rwRoundEl) rwRoundEl.textContent = `+${state.rewards.round}`;
+      renderTeam('A','#teamA');
+      renderTeam('B','#teamB');
+      renderShop();
+      const logHtml = state.log.slice().reverse().map(e=>`<div class="mono">${new Date(e.t).toLocaleTimeString()} — ${e.msg}</div>`).join('');
+      $('#eventLog').innerHTML = logHtml || '<div style="opacity:.6">No events yet.</div>';
+    }
+
+    /* =============================
+       Event Log
+    ==============================*/
+    function logEvent(msg){ state.log.push({t:Date.now(), msg}); if(state.log.length>200) state.log.shift(); saveLocal(); render(); }
+
+    /* =============================
+       Buy Modal
+    ==============================*/
+    let buyCtx = { playerId:null, tab:'Light' };
+
+    function openBuyModal(pid){
+      buyCtx.playerId = pid;
+      buyCtx.tab = 'Light';
+      $('#buyFilter').value='';
+      renderBuyGrid();
+      $('#buyModal').showModal();
+    }
+
+    function renderBuyGrid(){
+      const grid = $('#buyGrid'); grid.innerHTML='';
+      const term = ($('#buyFilter')?.value||'').toLowerCase();
+      const items = state.weapons[buyCtx.tab];
+      Object.entries(items).forEach(([name,cost])=>{
+        if(term && !name.toLowerCase().includes(term)) return;
+        const card=document.createElement('div');
+        card.className='weapon-card';
+        card.innerHTML=`
+          <img src="${weaponImgSrc(name)}" alt="${name}" onerror="this.src='';this.style.background='transparent'">
+          <div class="meta"><strong>${name}</strong><span class="number">$${cost}</span></div>
+          <button class="btn success" data-buy-weapon="${name}" data-cost="${cost}">Buy</button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    document.addEventListener('click', e=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+
+      /* Copy HUD link */
+      if(btn.classList.contains('copy-fab')){
+        const link = btn.dataset.copy;
+        navigator.clipboard.writeText(link).then(()=>toast("HUD link copied!"));
+        return;
+      }
+
+      if(btn.id==='themeBtn'){ state.theme = (state.theme==='dark'?'light':'dark'); applyTheme(state.theme); saveLocal(); return; }
+
+      if(btn.id==='endRound'){ state.teams.forEach(t=>t.players.forEach(p=>p.cash+=state.rewards.round)); logEvent(`End Round (+${state.rewards.round} all)`); syncAll(); return; }
+      if(btn.id==='cashoutA'){ const t=state.teams.find(x=>x.id==='A'); t.players.forEach(p=>p.cash+=state.rewards.cashout); logEvent(`Team A Cashout (+${state.rewards.cashout})`); syncAll(); return; }
+      if(btn.id==='cashoutB'){ const t=state.teams.find(x=>x.id==='B'); t.players.forEach(p=>p.cash+=state.rewards.cashout); logEvent(`Team B Cashout (+${state.rewards.cashout})`); syncAll(); return; }
+      if(btn.id==='resetCash'){ state.teams.forEach(t=>t.players.forEach(p=>p.cash=0)); logEvent('All cash reset'); syncAll(); return; }
+      if(btn.id==='clearWeapons'){ state.teams.forEach(t=>t.players.forEach(p=>p.weapon='Starter')); logEvent('All weapons cleared'); syncAll(); return; }
+      if(btn.id==='resetMatch'){ if(confirm('Reset match to defaults?')){ resetToDefaults(); logEvent('Match reset'); syncAll(); } return; }
+
+      if(btn.id==='settingsBtn'){ $('#settingsModal').showModal(); renderWeaponEditor(); $('#setKill').value=state.rewards.kill; $('#setCash').value=state.rewards.cashout; $('#setRound').value=state.rewards.round; $('#setPPT').value=state.teams[0].players.length; $('#setColorA').value=state.teams[0].color; $('#setColorB').value=state.teams[1].color; return; }
+      if(btn.id==='slotsBtn'){ $('#slotsModal').showModal(); return; }
+
+      if(btn.id==='massAdd'){ const amt=parseInt($('#massAmt').value)||0; adjustMass(amt,$('#massScope').value); syncAll(); return; }
+      if(btn.id==='massSub'){ const amt=parseInt($('#massAmt').value)||0; adjustMass(-amt,$('#massScope').value); syncAll(); return; }
+
+      if(btn.dataset.addPlayer){ const teamId=btn.dataset.addPlayer; const t=state.teams.find(x=>x.id===teamId); t.players.push({id:uid(), name:`Player ${t.players.length+1}`, cash:0, weapon:'Starter', dead:false, benched:false}); logEvent(`New player added to ${t.name}`); syncAll(); return; }
+
+      /* Remove last player on team */
+      if(btn.dataset.removeLast){ const teamId=btn.dataset.removeLast; const t=state.teams.find(x=>x.id===teamId); if(t && t.players.length>0){ const removed=t.players.pop(); logEvent(`Removed last player from ${t.name} (${removed.name})`); saveLocal(); render(); syncAll(); } return; }
+
+      /* Player-local actions */
+      const playerEl = btn.closest('.player');
+      if(playerEl){
+        const pid = playerEl.dataset.player;
+        const { team, player } = findPlayer(pid) || {};
+        if(player){
+          /* Remove player */
+          if(btn.hasAttribute('data-remove-player')){ const idx=team.players.findIndex(p=>p.id===pid); if(idx>-1){ const removed=team.players.splice(idx,1)[0]; logEvent(`Removed player ${removed.name} from ${team.name}`); saveLocal(); render(); syncAll(); } return; }
+
+          /* Cash +/- */
+          if(btn.dataset.cash){ const delta=parseInt(btn.dataset.cash)||0; player.cash=Math.max(0, player.cash+delta); saveLocal(); logEvent(`${player.name} cash ${delta>0?'+':''}${delta}`); pushPlayer(player); render(); return; }
+          /* Kill gives reward */
+          if(btn.hasAttribute('data-kill')){ player.cash+=state.rewards.kill; saveLocal(); logEvent(`${player.name} scored a kill (+$${state.rewards.kill})`); pushPlayer(player); render(); return; }
+
+          /* Death: save lastWeapon and mark dead */
+          if(btn.hasAttribute('data-death')){ if(!player.dead){ player.lastWeapon = player.weapon; player.dead=true; saveLocal(); logEvent(`${player.name} died`); pushPlayer(player); render(); } return; }
+
+          /* Revive: restore lastWeapon or Starter */
+          if(btn.hasAttribute('data-revive')){ if(player.dead){ player.dead=false; player.weapon = player.lastWeapon || 'Starter'; saveLocal(); logEvent(`${player.name} revived (restored ${player.weapon})`); pushPlayer(player); render(); } return; }
+
+          /* Bench toggle */
+          if(btn.hasAttribute('data-bench')){ player.benched=!player.benched; saveLocal(); logEvent(`${player.name} ${player.benched?'benched':'unbenched'}`); pushPlayer(player); render(); return; }
+        }
+      }
+
+      /* Open Buy modal for a player */
+      if(btn.dataset.buy){ openBuyModal(btn.dataset.buy); return; }
+
+      /* Handle Buy inside modal */
+      if(btn.dataset.buyWeapon){
+        const pid = buyCtx.playerId;
+        const { team, player } = findPlayer(pid) || {};
+        if(!player) return;
+        const weapon = btn.dataset.buyWeapon;
+        const cost = parseInt(btn.dataset.cost)||0;
+        if(player.cash < cost){ toast("Not enough cash"); return; }
+        player.cash -= cost;
+        player.weapon = weapon;
+        saveLocal(); logEvent(`${player.name} bought ${weapon} (-$${cost})`);
+        pushPlayer(player);
+        $('#buyModal').close();
+        render();
+        return;
+      }
+
+      if(btn.id==='buyClose'){ $('#buyModal').close(); return; }
+    });
+
+    document.addEventListener('change', e=>{
+      const el=e.target;
+      if(el.id==='weaponFilter'){ return; }
+      if(el.id==='buyFilter'){ renderBuyGrid(); return; }
+
+      if(el.matches('[data-team-color]')){
+        const t=state.teams.find(x=>x.id===el.dataset.teamColor); t.color=el.value; saveLocal(); render(); return;
+      }
+      if(el.classList.contains('teamName')){
+        const id=el.dataset.team; const t=state.teams.find(x=>x.id===id); t.name=el.value; saveLocal(); render(); return;
+      }
+
+      const playerEl = el.closest('.player'); if(!playerEl) return;
+      const pid = playerEl.dataset.player;
+      const team = state.teams.find(t=>t.players.some(p=>p.id===pid));
+      const player = team.players.find(p=>p.id===pid);
+
+      if(el.dataset.weapon!==undefined){ player.weapon=el.value; saveLocal(); logEvent(`${player.name} switched to ${player.weapon}`); pushPlayer(player); }
+      if(el.classList.contains('name')){ player.name=el.value; saveLocal(); logEvent(`Player renamed to ${player.name}`); pushPlayer(player); }
+    });
+
+    /* Click-to-edit cash */
+    document.addEventListener('click', (e)=>{
+      const span = e.target.closest('.number[data-editable]'); if(!span) return;
+      const playerEl = span.closest('.player'); if(!playerEl) return;
+      const pid = playerEl.dataset.player; const {player} = findPlayer(pid) || {};
+      if(!player) return;
+      const val = prompt('Set cash amount:', String(player.cash));
+      if(val!==null){ const num=Math.max(0, parseInt(val)||0); player.cash=num; saveLocal(); logEvent(`${player.name} cash set to $${num}`); pushPlayer(player); render(); }
+    });
+
+    /* Tab switching for Buy modal */
+    document.addEventListener('click', (e)=>{
+      const tabBtn = e.target.closest('button[data-tab]'); if(!tabBtn) return;
+      buyCtx.tab = tabBtn.dataset.tab;
+      renderBuyGrid();
+    });
+
+    function adjustMass(amt,scope){
+      if(scope==='all'){ state.teams.forEach(t=>t.players.forEach(p=>p.cash=Math.max(0,p.cash+amt))); }
+      else { const t=state.teams.find(x=>x.id===scope); t.players.forEach(p=>p.cash=Math.max(0,p.cash+amt)); }
+      logEvent(`Mass adjust ${amt} to ${scope}`);
+    }
+
+    /* =============================
+       Settings / Slots / Import Export
+    ==============================*/
+    function renderWeaponEditor(){
+      const mount = $('#weaponEditor'); mount.innerHTML='';
+      Object.entries(state.weapons).forEach(([group,items])=>{
+        const g=document.createElement('div'); g.innerHTML=`<h4>${group}</h4>`;
+        Object.entries(items).forEach(([name,cost])=>{
+          const row=document.createElement('div'); row.className='flex';
+          row.innerHTML=`<span style="flex:1">${name}</span><input type="number" class="input" value="${cost}" data-wedit="${group}:${name}" style="width:100px">`;
+          g.appendChild(row);
+        });
+        mount.appendChild(g);
+      });
+    }
+
+    document.addEventListener('change', e=>{
+      if(e.target.dataset.wedit){
+        const [grp,name]=e.target.dataset.wedit.split(':');
+        state.weapons[grp][name]=parseInt(e.target.value)||0;
+        saveLocal();
+      }
+    });
+
+    $('#settingsSave').addEventListener('click', ()=>{
+      state.rewards.kill=parseInt($('#setKill').value)||state.rewards.kill;
+      state.rewards.cashout=parseInt($('#setCash').value)||state.rewards.cashout;
+      state.rewards.round=parseInt($('#setRound').value)||state.rewards.round;
+      const ppt=parseInt($('#setPPT').value)||state.teams[0].players.length;
+      state.teams.forEach(t=>{
+        while(t.players.length<ppt) t.players.push({id:uid(), name:`Player ${t.players.length+1}`, cash:0, weapon:'Starter', dead:false, benched:false});
+        while(t.players.length>ppt) t.players.pop();
+      });
+      state.teams[0].color=$('#setColorA').value;
+      state.teams[1].color=$('#setColorB').value;
+      saveLocal(); render(); toast('Settings saved'); $('#settingsModal').close();
+      syncAll();
+    });
+
+    $('#settingsDefaults').addEventListener('click', ()=>{ resetToDefaults(); $('#settingsModal').close(); toast('Defaults restored'); syncAll(); });
+    $('#settingsClose').addEventListener('click', ()=>{ $('#settingsModal').close(); });
+
+    $$('[data-theme-set]').forEach(b=>b.addEventListener('click',()=>{ state.theme=b.dataset.themeSet; applyTheme(state.theme); saveLocal(); }));
+
+    $('#exportBtn').addEventListener('click', ()=>{
+      const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='scoreboard.json'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    $('#importBtn').addEventListener('click', ()=>{
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json';
+      inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ state=JSON.parse(r.result); saveLocal(); render(); toast('Imported'); syncAll(); }catch(e){ alert('Invalid JSON'); } }; r.readAsText(f); };
+      inp.click();
+    });
+
+    $('#settingsBtn').addEventListener('click', ()=>$('#settingsModal').showModal());
+    $('#slotsBtn').addEventListener('click', ()=>$('#slotsModal').showModal());
+    $('#buyClose').addEventListener('click', ()=>$('#buyModal').close());
+
+    $$('[data-slot-save]').forEach(b=>b.addEventListener('click', ()=>{ localStorage.setItem('slot'+b.dataset.slotSave, JSON.stringify(state)); toast('Saved slot '+b.dataset.slotSave); }));
+    $$('[data-slot-load]').forEach(b=>b.addEventListener('click', ()=>{ const d=localStorage.getItem('slot'+b.dataset.slotLoad); if(d){ state=JSON.parse(d); saveLocal(); render(); toast('Loaded slot '+b.dataset.slotLoad); $('#slotsModal').close(); syncAll(); } }));
+
+    /* Timer section removed */
+
+    /* =============================
+       HUD Rendering
+    ==============================*/
+    function renderHUD(pid){
+      const mount = $('#hudPlayer');
+      const found = findPlayer(pid) || {};
+      const { team, player } = found;
+      if(!player){ mount.innerHTML='<div class="small" style="color:var(--muted)">Player not found</div>'; return; }
+      const borderColor = team?.color || '#3b82f6';
+      mount.innerHTML = `
+        <div class="player" data-player="${player.id}" style="border-color:${borderColor}; box-shadow:0 0 10px ${borderColor}55">
+          <div class="weapon-slot">
+            <img src="${weaponImgSrc(player.weapon)}" alt="${player.weapon}" onerror="this.src='';this.style.background='transparent'" />
+          </div>
+          <div class="flex" style="justify-content:center;width:100%"><span style="font-weight:700">${player.name}</span></div>
+          <div class="cash-big">$${player.cash}</div>
+          <div class="small">Weapon: ${player.weapon}</div>
+          ${player.dead?'<div class="badge dead" style="margin-top:6px">⚰ Dead</div>':''}
+          ${player.benched?'<div class="badge benched" style="margin-top:6px">Benched</div>':''}
+        </div>`;
+    }
+
+    function isHUD(){ return new URLSearchParams(location.search).has('player'); }
+
+    function findPlayer(pid){
+      for(const t of state.teams){ for(const p of t.players){ if(p.id===pid) return {team:t,player:p}; } } return null;
+    }
+
+    function hudInit(){
+      $('#modOnly').classList.add('hidden');
+      $('#hudOnly').classList.remove('hidden');
+      document.body.classList.add('hud-centered','hud-gradient');
+    }
+
+    /* =============================
+       Firebase Sync (cash, weapon, name, dead, benched)
+    ==============================*/
     const firebaseConfig = {
       apiKey: "AIzaSyASA4ZVlC_HxKDOH5nm3n5doFguxvlYSIQ",
       authDomain: "the-finals-scoreboard.firebaseapp.com",
       projectId: "the-finals-scoreboard",
-      storageBucket: "the-finals-scoreboard.appspot.com",
+      storageBucket: "the-finals-scoreboard.firebasestorage.app",
       messagingSenderId: "733685501021",
       appId: "1:733685501021:web:df9d1d63b5106a099811b4",
       measurementId: "G-C02JSSKWN5"
     };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    let fb = { enabled:false };
 
-    // Remove trailing commas to avoid any doc.write parser edge-cases
-    window.__fs = {
-      setPlayer: async (name, data) => {
-        try {
-          await setDoc(doc(db, "players", String(name)), data, { merge: true });
-        } catch (e) {
-          console.error("Firestore setPlayer error", e);
-        }
-      },
-      subscribe: (name, cb) => {
-        try {
-          return onSnapshot(
-            doc(db, "players", String(name)),
-            (snap) => cb(snap.exists() ? snap.data() : null)
-          );
-        } catch (e) {
-          console.error("Firestore subscribe error", e);
-          return () => {};
-        }
-      }
-    };
-  </script>
-</head>
-<body>
-  <header>
-    <div class="header-inner">
-      <div class="title">THE FINALS — Moderator Scoreboard</div>
-      <div class="toolbar">
-        <span class="theme-toggle"><input type="checkbox" id="themeToggle" /><label for="themeToggle" class="muted">Light mode</label></span>
-        <button class="btn" id="toggleTimer">⏱ Show Timer</button>
-        <button class="btn" id="toggleMass">⚡ Show Mass Adjust</button>
-        <button class="btn" id="toggleLog">📜 Show Event Log</button>
-        <button class="btn" id="openSettingsBtn">⚙️ Settings</button>
-        <button class="btn btn-primary" id="endRoundBtn">🏁 End Round</button>
-        <button class="btn btn-warning" id="resetCashBtn">🔄 Reset Cash</button>
-        <button class="btn" id="clearWeaponsBtn">🗑️ Clear Weapons</button>
-        <button class="btn btn-danger" id="revertBtn">↩️ Revert</button>
-      </div>
-    </div>
-  </header>
-
-  <div class="layout">
-    <div class="teams" id="teamsArea"></div>
-
-    <aside class="right">
-      <div class="panel hidden" id="timerPanel">
-        <h3>Round Timer</h3>
-        <div><span class="btn" id="timerClock" style="font-weight:800">00:00</span></div>
-        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn" id="timerStart">Start</button>
-          <button class="btn" id="timerPause">Pause</button>
-          <button class="btn" id="timerReset">Reset</button>
-        </div>
-      </div>
-
-      <div class="panel hidden" id="massPanel">
-        <h3>Mass Adjust</h3>
-        <input id="massAmount" class="input" type="number" value="100" style="width:100%" />
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
-          <button class="btn btn-success" id="addAllBtn">+ All</button>
-          <button class="btn btn-danger" id="subAllBtn">- All</button>
-          <button class="btn" id="addTeamABtn">+ Team A</button>
-          <button class="btn" id="subTeamABtn">- Team A</button>
-          <button class="btn" id="addTeamBBtn">+ Team B</button>
-          <button class="btn" id="subTeamBBtn">- Team B</button>
-        </div>
-        <button class="btn btn-warning" id="resetMatchBtn" style="margin-top:6px">Reset Match</button>
-        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-          <button class="btn" id="exportJsonBtn">Export JSON</button>
-          <button class="btn" id="exportCsvBtn">Export CSV</button>
-        </div>
-        <h4 style="margin:10px 0 6px">Save Slots</h4>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <input id="slotName" class="input" placeholder="Slot name" style="flex:1;min-width:120px" />
-          <button class="btn btn-primary" id="saveSlotBtn">Save</button>
-        </div>
-        <div id="slotList" class="log" style="margin-top:8px"></div>
-      </div>
-
-      <div class="panel hidden" id="logPanel">
-        <h3>Event Log</h3>
-        <div id="log" class="log"></div>
-      </div>
-    </aside>
-  </div>
-
-  <!-- Shop modal -->
-  <div class="overlay" id="shopModal">
-    <div class="modal">
-      <h3>Buy weapon</h3>
-      <div id="shopForPlayerInfo" class="muted" style="margin-bottom:8px"></div>
-      <div class="buy-toolbar">
-        <input id="searchInput" class="input" placeholder="Search weapons by name..." />
-        <label class="switch"><input type="checkbox" id="imagesOnlyToggle" /> Images only</label>
-      </div>
-      <div class="chip">Light</div>
-      <div class="grid-weapons" id="gridLight"></div>
-      <div class="chip">Medium</div>
-      <div class="grid-weapons" id="gridMedium"></div>
-      <div class="chip">Heavy</div>
-      <div class="grid-weapons" id="gridHeavy"></div>
-      <div style="text-align:right;margin-top:12px">
-        <button class="btn btn-danger" id="closeShopBtn">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings modal -->
-  <div class="overlay" id="settingsModal">
-    <div class="modal">
-      <h3>Settings</h3>
-      <div class="settings-grid">
-        <div class="card">
-          <h4>Rewards</h4>
-          <div class="kv">
-            <label class="muted">Kill reward</label><input id="inpKill" class="input" type="number" min="0" />
-            <label class="muted">Team cashout reward</label><input id="inpTeamCashout" class="input" type="number" min="0" />
-            <label class="muted">Round end reward</label><input id="inpRoundEnd" class="input" type="number" min="0" />
-          </div>
-        </div>
-        <div class="card">
-          <h4>Team colors</h4>
-          <div style="display:flex;gap:10px;align-items:center"><span class="muted" style="width:120px">Team A color</span><input id="colorA" type="color" value="#2563eb" /></div>
-          <div style="display:flex;gap:10px;align-items:center;margin-top:6px"><span class="muted" style="width:120px">Team B color</span><input id="colorB" type="color" value="#ef4444" /></div>
-        </div>
-        <div class="card">
-          <h4>Players per team</h4>
-          <input id="playersPerTeam" class="input" type="number" min="1" max="12" value="5" />
-          <div class="muted" style="margin-top:6px">Applies to both teams. Reducing trims from the end.</div>
-        </div>
-        <div class="card">
-          <h4>Data</h4>
-          <div class="settings-actions" style="justify-content:flex-start">
-            <button id="saveToLocalBtn" class="btn btn-primary">Save</button>
-            <button id="downloadSettingsBtn" class="btn btn-success">Export JSON</button>
-            <button id="uploadSettingsBtn" class="btn btn-warning">Import JSON</button>
-            <input type="file" id="fileUpload" style="display:none" />
-            <button id="resetDefaultsBtn" class="btn btn-danger">Reset to defaults</button>
-          </div>
-        </div>
-        <div class="card" style="grid-column:1/-1">
-          <h4>Weapon costs</h4>
-          <input id="wepFilter" class="input" placeholder="Filter weapons..." style="margin-bottom:8px" />
-          <div class="weps-editor" id="wepsEditor"></div>
-        </div>
-      </div>
-      <div class="settings-actions">
-        <button id="closeSettingsBtn" class="btn">Close</button>
-        <button id="saveSettingsBtn" class="btn btn-primary">Apply</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    'use strict';
-    // ================= Constants & Data =================
-    const KEY_SETTINGS = "finals_settings_compact_v1";
-    const KEY_THEME = "finals_theme";
-    const KEY_UI = "finals_ui_prefs_compact_v1";
-    const KEY_SLOTS = "finals_slots_compact_v1";
-
-    // NOTE: Update this to your deployed HUD page
-    const BASE_URL = "https://scooterbrewer.github.io/The-Finals-Scoreboard/";
-
-    const WEAPONS = {
-      light:[
-        {name:"93R",cost:8*50+50},{name:"ARN-220",cost:7*50+50},{name:"Dagger",cost:3*50+50},{name:"LH1",cost:5*50+50},{name:"M11",cost:6*50+50},
-        {name:"M26 Matter",cost:4*50+50},{name:"Recurve Bow",cost:5*50+50},{name:"SH1900",cost:6*50+50},{name:"SR-84",cost:5*50+50},
-        {name:"Sword",cost:3*50+50},{name:"Throwing Knives",cost:4*50+50},{name:"V9S",cost:2*50+50},{name:"XP-54",cost:4*50+50}
-      ],
-      medium:[
-        {name:"AKM",cost:5*50+50},{name:"CB-01 Repeater",cost:6*50+50},{name:"Cerberus 12GA",cost:4*50+50},{name:"CL-40",cost:7*50+50},
-        {name:"Dual Blades",cost:4*50+50},{name:"FAMAS",cost:8*50+50},{name:"FCAR",cost:8*50+50},{name:"Model 1887",cost:4*50+50},
-        {name:"P90",cost:6*50+50},{name:"Pike-556",cost:6*50+50},{name:"R.357",cost:3*50+50},{name:"Riot Shield",cost:5*50+50}
-      ],
-      heavy:[
-        {name:".50 Akimbo",cost:4*50+50},{name:"BFR Titan",cost:9*50+50},{name:"Flamethrower",cost:5*50+50},{name:"KS-23",cost:4*50+50},
-        {name:"Lewis Gun",cost:6*50+50},{name:"M134 Minigun",cost:7*50+50},{name:"M60",cost:7*50+50},{name:"MGL32",cost:3*50+50},
-        {name:"SA1216",cost:7*50+50},{name:"ShAK-50",cost:8*50+50},{name:"Sledgehammer",cost:3*50+50},{name:"Spear",cost:3*50+50}
-      ]
-    };
-
-    // ================= Utilities =================
-    function whenFSReady(fn, tries=0){
-      if (window.__fs) { fn(); return; }
-      if (tries > 200) { console.error("Firestore SDK not ready"); return; }
-      setTimeout(()=>whenFSReady(fn, tries+1), 50);
-    }
-
-    const sanitizeFile=(name)=>name.replace(/[^A-Za-z0-9]/g,'')+".png";
-    const svgPlaceholder=(name)=>"data:image/svg+xml;utf8,"+encodeURIComponent(
-      "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='160'>"+
-      "<rect width='100%' height='100%' fill='#0b0b0b'/><text x='50%' y='50%' fill='#7c8a97' font-size='16' text-anchor='middle' alignment-baseline='middle'>"+
-      name+
-      "</text></svg>"
-    );
-
-    function showToast(){
-      const t=document.getElementById("toast"); if(!t) return;
-      t.className="show"; setTimeout(()=>{t.className=t.className.replace("show","");},2000);
-    }
-
-    function log(msg){
-      const host=document.getElementById('log'); if(!host) return;
-      const div=document.createElement('div'); div.className='log-entry';
-      div.textContent=new Date().toLocaleTimeString()+": "+msg;
-      host.prepend(div);
-      const items=host.querySelectorAll('.log-entry'); if(items.length>100) items[items.length-1].remove();
-    }
-
-    function copyPlayerLink(id, pNameForLink){
-      const url = `${BASE_URL}?player=${encodeURIComponent(id)}&name=${encodeURIComponent(pNameForLink||"")}`;
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(url).then(()=>{showToast();}).catch(()=>{prompt("Copy link:", url);});
-      }else{ prompt("Copy link:", url); }
-    }
-
-    function syncAllPlayersToFirestore(){
-      if(!window.__fs) return;
+    (function initFirebase(){
       try{
-        state.teams.forEach(team=>team.players.forEach(p=>{
-          window.__fs.setPlayer(p.id || p.name, {
-            name: p.name,
-            cash: p.cash,
-            currentWeapon: p.currentWeapon,
-            dead: !!p.dead,
-            bench: !!p.bench,
-            team: team.name
-          });
-        }));
-      }catch(e){ console.error("syncAllPlayersToFirestore failed", e); }
-    }
+        if(firebaseConfig && firebaseConfig.apiKey){
+          const s = document.createElement('script'); s.type='module';
+          s.textContent = `
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+            import { getFirestore, doc, setDoc, onSnapshot, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+            const app = initializeApp(${JSON.stringify(firebaseConfig)});
+            const db = getFirestore(app);
+            window.__fb = { db, doc, setDoc, onSnapshot, getDoc };
+            document.dispatchEvent(new Event('fb-ready'));
+          `;
+          document.head.appendChild(s);
+        }
+      }catch(err){ /* ignore */ }
+    })();
 
-    // ================= State & Settings =================
-    const defaultCosts = (()=>{ const m={}; for(const k of Object.keys(WEAPONS)){ WEAPONS[k].forEach(w=>m[w.name]=w.cost); } return m; })();
-
-    let settings = JSON.parse(localStorage.getItem(KEY_SETTINGS)||"null") || {
-      killReward:100,
-      teamCashoutReward:200,
-      roundEndReward:200,
-      weaponCosts: Object.assign({}, defaultCosts),
-      teamColors:{A:"#2563eb",B:"#ef4444"},
-      playersPerTeam:5
-    };
-
-    let state = JSON.parse(localStorage.getItem('finals_state_runtime')||"null") || {
-      teams:[
-        {name:"Team A", players:Array.from({length:settings.playersPerTeam},(_,i)=>({name:`Player ${i+1}`,cash:0,currentWeapon:"Starter",prevWeapon:null,dead:false,bench:false}))},
-        {name:"Team B", players:Array.from({length:settings.playersPerTeam},(_,i)=>({name:`Player ${i+1}`,cash:0,currentWeapon:"Starter",prevWeapon:null,dead:false,bench:false}))}
-      ]
-    };
-
-    function persist(){
-      try{ localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings)); }catch(e){}
-      try{ localStorage.setItem('finals_state_runtime', JSON.stringify(state)); }catch(e){}
-      syncAllPlayersToFirestore();
-    }
-
-    // Ensure players have UUIDs
-    state.teams.forEach(team=>team.players.forEach(p=>{
-      if(!p.id){ try{ p.id=crypto.randomUUID(); }catch(e){ p.id=String(Math.random()).slice(2); } }
-    }));
-
-    // ================= Theme =================
-    const themeToggle=document.getElementById("themeToggle");
-    const savedTheme=localStorage.getItem(KEY_THEME)||"dark";
-    document.documentElement.setAttribute("data-theme",savedTheme);
-    themeToggle.checked=(savedTheme==="light");
-    themeToggle.onchange=()=>{
-      const t=themeToggle.checked?"light":"dark";
-      document.documentElement.setAttribute("data-theme",t);
-      localStorage.setItem(KEY_THEME,t);
-    };
-
-    // ================= Panel toggles =================
-    const uiPrefs=JSON.parse(localStorage.getItem(KEY_UI)||"{}");
-    function setupToggle(btnId,panelId,label){
-      const btn=document.getElementById(btnId);
-      const panel=document.getElementById(panelId);
-      const show=!!uiPrefs[panelId];
-      panel.classList.toggle('hidden',!show);
-      function labelize(v){
-        const base=btn.textContent.split(' ')[0];
-        btn.textContent=`${base} ${v? 'Hide':'Show'} ${label}`;
+    document.addEventListener('fb-ready', ()=>{
+      fb.enabled=true;
+      if(isHUD()){
+        const pid=new URLSearchParams(location.search).get('player');
+        startFirestoreListener(pid);
       }
-      labelize(show);
-      btn.onclick=()=>{
-        const visible=panel.classList.contains('hidden');
-        panel.classList.toggle('hidden',!visible);
-        uiPrefs[panelId]=visible; localStorage.setItem(KEY_UI,JSON.stringify(uiPrefs));
-        labelize(visible);
-      };
-    }
-    setupToggle("toggleTimer","timerPanel","Timer");
-    setupToggle("toggleMass","massPanel","Mass Adjust");
-    setupToggle("toggleLog","logPanel","Event Log");
+    });
 
-    // ================= Timer =================
-    let timer=0,timerId=null; const clock=document.getElementById("timerClock");
-    function updateClock(){ const m=String(Math.floor(timer/60)).padStart(2,'0'); const s=String(timer%60).padStart(2,'0'); if(clock) clock.textContent=`${m}:${s}`; }
-    document.getElementById("timerStart").onclick=()=>{ if(timerId) return; timerId=setInterval(()=>{timer++;updateClock();},1000); };
-    document.getElementById("timerPause").onclick=()=>{ clearInterval(timerId); timerId=null; };
-    document.getElementById("timerReset").onclick=()=>{ if(confirm("Reset timer?")){ timer=0; updateClock(); } };
-
-    // ================= Render =================
-    const teamsArea=document.getElementById('teamsArea');
-    function teamTotalCash(team){ return team.players.reduce((a,p)=>a+p.cash,0); }
-
-    function makePlayerCard(team,tIdx,p,pIdx){
-      const card=document.createElement('div'); card.className='player-card';
-
-      const top=document.createElement('div'); top.className='player-top';
-      const idx=document.createElement('div'); idx.className='player-index'; idx.textContent=`#${pIdx+1}`;
-      const name=document.createElement('div'); name.className='player-name'; name.textContent=p.name; name.title="Click to rename";
-      name.onclick=()=>{ const nm=prompt("Player name:",p.name); if(nm){ p.name=nm; persist(); render(); } };
-      top.appendChild(idx); top.appendChild(name);
-
-      const wbox=document.createElement('div'); wbox.className='weapon-box';
-      const icon=document.createElement('img'); const sanitized=sanitizeFile(p.dead?"Starter":p.currentWeapon);
-      icon.src="images/"+sanitized; icon.onerror=()=>{icon.src=svgPlaceholder(p.currentWeapon);};
-      const wname=document.createElement('div'); wname.className='weapon-name'; wname.textContent=p.currentWeapon;
-      const badges=document.createElement('div'); badges.className='badges';
-      if(p.dead){ const b=document.createElement('span'); b.className='badge dead'; b.textContent='⚰ Dead'; badges.appendChild(b); }
-      if(p.bench){ const b=document.createElement('span'); b.className='badge bench'; b.textContent='BENCHED'; badges.appendChild(b); }
-      wbox.appendChild(icon); wbox.appendChild(wname); wbox.appendChild(badges);
-
-      const cashbox=document.createElement('div'); cashbox.className='cash-box';
-      const cashVal=document.createElement('span'); cashVal.className='cash-value'; cashVal.textContent=`$${p.cash}`; cashVal.title="Click to edit cash";
-      cashVal.onclick=()=>{
-        const input=document.createElement('input'); input.type='number'; input.className='input'; input.value=p.cash; cashbox.replaceChild(input,cashVal); input.focus(); input.select();
-        const save=()=>{ const v=parseInt(input.value); if(!isNaN(v)){ p.cash=Math.max(0,v); persist(); render(); } else { cashbox.replaceChild(cashVal,input); } };
-        input.addEventListener('keydown',ev=>{ if(ev.key==='Enter') save(); if(ev.key==='Escape'){ cashbox.replaceChild(cashVal,input); } });
-        input.addEventListener('blur', save);
-      };
-      const qa=document.createElement('div'); qa.className='quick-adjust';
-      const plus100=document.createElement('button'); plus100.className='btn btn-success btn-compact'; plus100.textContent='+100'; plus100.onclick=()=>{ p.cash+=100; persist(); render(); };
-      const minus100=document.createElement('button'); minus100.className='btn btn-danger btn-compact'; minus100.textContent='-100'; minus100.onclick=()=>{ p.cash=Math.max(0,p.cash-100); persist(); render(); };
-      qa.appendChild(plus100); qa.appendChild(minus100);
-      cashbox.appendChild(cashVal); cashbox.appendChild(qa);
-
-      const actions=document.createElement('div'); actions.className='actions';
-      const copy=document.createElement('button'); copy.className='btn btn-compact btn-link'; copy.textContent='Live'; copy.onclick=()=>{ copyPlayerLink(p.id, p.name); };
-      const kill=document.createElement('button'); kill.className='btn btn-success btn-compact'; kill.textContent='Kill';
-      kill.onclick=()=>{ if(p.bench) return; p.cash+=settings.killReward; log(`${team.name}: ${p.name} Kill +${settings.killReward}`); persist(); render(); };
-      const buy=document.createElement('button'); buy.className='btn btn-primary btn-compact'; buy.textContent='Buy'; buy.onclick=()=>{ if(p.bench) return; openShop(tIdx,pIdx); };
-      const death=document.createElement('button'); death.className='btn btn-danger btn-compact'; death.textContent='Death'; death.disabled=p.dead;
-      death.onclick=()=>{ if(p.bench||p.dead) return; p.prevWeapon=p.currentWeapon; p.currentWeapon="Starter"; p.dead=true; log(`${team.name}: ${p.name} Died`); persist(); render(); };
-      const revive=document.createElement('button'); revive.className='btn btn-warning btn-compact'; revive.textContent='Revive'; revive.disabled=!p.dead;
-      revive.onclick=()=>{ if(p.bench||!p.dead) return; p.currentWeapon=p.prevWeapon||"Starter"; p.prevWeapon=null; p.dead=false; log(`${team.name}: ${p.name} Revived`); persist(); render(); };
-      [kill,buy,death,revive,copy].forEach(b=>actions.appendChild(b));
-
-      card.appendChild(top); card.appendChild(wbox); card.appendChild(cashbox); card.appendChild(actions);
-      return card;
+    async function pushPlayer(p){
+      if(!fb.enabled) return;
+      try{
+        const {db, doc, setDoc} = window.__fb;
+        const data = { name:p.name, cash:p.cash, weapon:p.weapon, dead:p.dead, benched:p.benched };
+        await setDoc(doc(db,'players', p.id), data, {merge:true});
+      }catch(e){ /* ignore */ }
     }
 
-    function render(){
-      teamsArea.innerHTML='';
-      state.teams.forEach((team,tIdx)=>{
-        const tcard=document.createElement('div'); tcard.className='team-card'; tcard.style.setProperty('--teamcolor', tIdx===0?settings.teamColors.A:settings.teamColors.B);
-        const header=document.createElement('div'); header.className='team-header';
-        const h2=document.createElement('h2'); h2.textContent=team.name;
-        const headActions=document.createElement('div'); headActions.className='team-head-actions';
-        const rename=document.createElement('button'); rename.className='btn btn-compact'; rename.textContent='Rename'; rename.onclick=()=>{ const nm=prompt("Team name:",team.name); if(nm){ team.name=nm; persist(); render(); } };
-        const addP=document.createElement('button'); addP.className='btn btn-compact'; addP.textContent='+ Player'; addP.onclick=()=>{ team.players.push({name:`Player ${team.players.length+1}`,cash:0,currentWeapon:"Starter",prevWeapon:null,dead:false,bench:false}); persist(); render(); };
-        const remP=document.createElement('button'); remP.className='btn btn-danger btn-compact'; remP.textContent='- Player'; remP.onclick=()=>{ if(team.players.length>1){ team.players.pop(); persist(); render(); } };
-        const cashout=document.createElement('button'); cashout.className='btn btn-success btn-compact'; cashout.textContent=`Cashout +${settings.teamCashoutReward}`; cashout.onclick=()=>{ team.players.forEach(pl=>pl.cash+=settings.teamCashoutReward); log(`${team.name}: Team Cashout +${settings.teamCashoutReward}`); persist(); render(); };
-        headActions.appendChild(rename); headActions.appendChild(addP); headActions.appendChild(remP); headActions.appendChild(cashout);
-        header.appendChild(h2); header.appendChild(headActions);
-        tcard.appendChild(header);
-
-        const playersWrap=document.createElement('div'); playersWrap.className='team-players';
-        team.players.forEach((p,pIdx)=> playersWrap.appendChild(makePlayerCard(team,tIdx,p,pIdx)) );
-        tcard.appendChild(playersWrap);
-
-        const footer=document.createElement('div'); footer.className='team-footer';
-        footer.innerHTML=`<div class="total">Team Total: $${teamTotalCash(team)}</div>`;
-        tcard.appendChild(footer);
-
-        teamsArea.appendChild(tcard);
-      });
-      document.getElementById("endRoundBtn").textContent=`🏁 End Round (+${settings.roundEndReward})`;
+    async function syncAll(){
+      if(!fb.enabled) return;
+      try {
+        const ps=[];
+        state.teams.forEach(t=>t.players.forEach(p=>ps.push(pushPlayer(p))));
+        await Promise.all(ps);
+      }catch(e){ /* ignore */ }
     }
 
-    // ================= Shop =================
-    const shopModal=document.getElementById("shopModal");
-    let currentBuyer=null;
-    const imagesOnlyToggle=document.getElementById("imagesOnlyToggle");
-    const searchInput=document.getElementById("searchInput");
-    if(imagesOnlyToggle) imagesOnlyToggle.onchange=()=>renderShop();
-    if(searchInput) searchInput.oninput=()=>renderShop();
-    document.getElementById("closeShopBtn").onclick=()=>{shopModal.style.display="none";currentBuyer=null;};
-
-    function openShop(tIdx,pIdx){
-      currentBuyer={tIdx,pIdx};
-      const player=state.teams[tIdx].players[pIdx];
-      document.getElementById("shopForPlayerInfo").innerText=`${player.name} — Cash: $${player.cash}`;
-      renderShop();
-      shopModal.style.display="flex";
+    function startFirestoreListener(pid){
+      if(!fb.enabled) return;
+      try{
+        const {db, doc, onSnapshot, getDoc} = window.__fb;
+        getDoc(doc(db,'players', pid)).then((snap)=>{ if(snap.exists()){ const data = snap.data(); applyPlayerData(pid, data); renderHUD(pid); } });
+        onSnapshot(doc(db,'players', pid), (snap)=>{ const data=snap.data(); if(data){ applyPlayerData(pid, data); renderHUD(pid); } });
+      }catch(e){ /* ignore */ }
     }
 
-    function renderShop(){
-      const q=(searchInput.value||"").toLowerCase();
-      const grids={light:document.getElementById("gridLight"),medium:document.getElementById("gridMedium"),heavy:document.getElementById("gridHeavy")};
-      for(const cls of Object.keys(grids)){
-        const grid=grids[cls]; grid.innerHTML="";
-        WEAPONS[cls].filter(w=>!q||w.name.toLowerCase().includes(q)).forEach(w=>grid.appendChild(buildCard(w)));
+    function applyPlayerData(pid, data){
+      const {player} = findPlayer(pid) || {};
+      if(player){
+        player.name = data.name;
+        player.cash = data.cash;
+        player.weapon = data.weapon;
+        player.dead = data.dead;
+        player.benched = data.benched;
+        saveLocal();
       }
     }
 
-    function buildCard(w){
-      const card=document.createElement("div");card.className="weapon-card";
-      const img=document.createElement("img");img.alt=w.name;img.src="images/"+sanitizeFile(w.name);img.onerror=()=>{img.src=svgPlaceholder(w.name);};
-      card.appendChild(img);
-      const showMeta=!imagesOnlyToggle.checked;
-      const nm=document.createElement("div");nm.className="weapon-name";nm.innerText=w.name;if(showMeta) card.appendChild(nm);
-      const price=settings.weaponCosts[w.name]??w.cost;
-      const cost=document.createElement("div");cost.className="weapon-cost";cost.innerText=`$${price}`;if(showMeta) card.appendChild(cost);
-      card.onclick=()=>{
-        if(!currentBuyer) return;
-        const {tIdx,pIdx}=currentBuyer;const player=state.teams[tIdx].players[pIdx];
-        if(player.cash>=price){
-          player.cash-=price;player.prevWeapon=player.currentWeapon;player.currentWeapon=w.name;player.dead=false;
-          log(`${state.teams[tIdx].name}: ${player.name} bought ${w.name} (-${price})`);
-          persist();render();shopModal.style.display="none";currentBuyer=null;
-        } else alert("Not enough cash for "+w.name);
-      };
-      return card;
-    }
-
-    // ================= Settings Modal =================
-    const settingsModal=document.getElementById("settingsModal");
-    document.getElementById("openSettingsBtn").onclick=openSettings;
-    document.getElementById("closeSettingsBtn").onclick=()=>settingsModal.style.display="none";
-    document.getElementById("saveSettingsBtn").onclick=saveSettings;
-    document.getElementById("saveToLocalBtn").onclick=()=>{persist();alert("Saved.");};
-    document.getElementById("downloadSettingsBtn").onclick=downloadSettingsJSON;
-    document.getElementById("uploadSettingsBtn").onclick=()=>document.getElementById("fileUpload").click();
-    document.getElementById("fileUpload").onchange=handleSettingsUpload;
-    document.getElementById("resetDefaultsBtn").onclick=resetDefaults;
-    document.getElementById("wepFilter").oninput=()=>openSettings();
-
-    function openSettings(){
-      settingsModal.style.display="flex";
-      document.getElementById("inpKill").value=settings.killReward;
-      document.getElementById("inpTeamCashout").value=settings.teamCashoutReward;
-      document.getElementById("inpRoundEnd").value=settings.roundEndReward;
-      const colorA=document.getElementById("colorA"); const colorB=document.getElementById("colorB");
-      colorA.value=settings.teamColors.A; colorB.value=settings.teamColors.B;
-      colorA.oninput=()=>{ settings.teamColors.A=colorA.value; render(); };
-      colorB.oninput=()=>{ settings.teamColors.B=colorB.value; render(); };
-      document.getElementById("playersPerTeam").value=state.teams[0].players.length;
-
-      const host=document.getElementById("wepsEditor");host.innerHTML="";
-      const filter=(document.getElementById("wepFilter").value||"").toLowerCase();
-      for(const cls of Object.keys(WEAPONS)){
-        WEAPONS[cls].forEach(w=>{
-          if(filter && !w.name.toLowerCase().includes(filter)) return;
-          const row=document.createElement("div");row.className="wep-row";
-          const lbl=document.createElement("div");lbl.className="label";lbl.innerText=w.name;
-          const input=document.createElement("input");input.type="number";input.min="0";input.className="input";
-          input.value=settings.weaponCosts[w.name]??w.cost;
-          input.oninput=()=>{const v=parseInt(input.value);if(!isNaN(v)) settings.weaponCosts[w.name]=v;};
-          row.appendChild(lbl);row.appendChild(input);host.appendChild(row);
-        });
+    /* =============================
+       Boot
+    ==============================*/
+    function boot(){
+      const saved=loadLocal();
+      if(saved){ state=saved; state.weapons=saved.weapons||structuredClone(WEAPONS); state.rewards=saved.rewards||{...DEFAULTS.rewards}; state.theme=saved.theme||DEFAULTS.theme; }
+      else { resetToDefaults(); }
+      applyTheme(state.theme);
+      if(isHUD()){ hudInit(); const pid=new URLSearchParams(location.search).get('player');
+        // set dynamic hud gradient based on team color (black -> team color)
+        const found=findPlayer(pid); if(found && found.team){
+          const color=found.team.color; document.documentElement.style.setProperty('--hud-color', color);
+        } else { document.documentElement.style.setProperty('--hud-color', '#2563eb'); }
+        renderHUD(pid);
       }
+      else { render(); }
     }
 
-    function applyPlayersPerTeam(n){
-      state.teams.forEach(team=>{
-        const cur=team.players.length;
-        if(n>cur){ for(let i=cur;i<n;i++){ team.players.push({name:`Player ${i+1}`,cash:0,currentWeapon:"Starter",prevWeapon:null,dead:false,bench:false}); } }
-        else if(n<cur){ team.players.splice(n); }
-      });
-    }
-
-    function saveSettings(){
-      const kr=parseInt(document.getElementById("inpKill").value); if(!isNaN(kr)) settings.killReward=kr;
-      const tcr=parseInt(document.getElementById("inpTeamCashout").value); if(!isNaN(tcr)) settings.teamCashoutReward=tcr;
-      const rer=parseInt(document.getElementById("inpRoundEnd").value); if(!isNaN(rer)) settings.roundEndReward=rer;
-      settings.teamColors.A=document.getElementById("colorA").value||settings.teamColors.A;
-      settings.teamColors.B=document.getElementById("colorB").value||settings.teamColors.B;
-      const ppt=parseInt(document.getElementById("playersPerTeam").value); if(!isNaN(ppt)&&ppt>0&&ppt<=12){ settings.playersPerTeam=ppt; applyPlayersPerTeam(ppt); }
-      persist(); settingsModal.style.display="none"; render();
-    }
-
-    function resetDefaults(){
-      if(!confirm("Reset all settings to defaults?")) return;
-      settings={
-        killReward:100, teamCashoutReward:200, roundEndReward:200,
-        weaponCosts:Object.assign({}, defaultCosts), teamColors:{A:"#2563eb",B:"#ef4444"}, playersPerTeam:5
-      };
-      applyPlayersPerTeam(5);
-      persist(); openSettings();
-    }
-
-    function downloadSettingsJSON(){
-      const blob=new Blob([JSON.stringify(settings,null,2)],{type:"application/json"});
-      const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="finals_settings.json"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
-
-    function handleSettingsUpload(e){
-      const f=e.target.files[0]; if(!f) return;
-      const r=new FileReader();
-      r.onload=evt=>{ try{ const parsed=JSON.parse(evt.target.result);
-        if(parsed&&parsed.weaponCosts){ settings=Object.assign({killReward:100,teamCashoutReward:200,roundEndReward:200,weaponCosts:{},teamColors:{A:"#2563eb",B:"#ef4444"},playersPerTeam:5},parsed); applyPlayersPerTeam(settings.playersPerTeam); persist(); settingsModal.style.display="none"; render(); }
-        else alert("Invalid settings file.");
-      } catch(err){ alert("Parse error: "+err.message); } };
-      r.readAsText(f); e.target.value="";
-    }
-
-    // ================= Global Actions =================
-    let undoSnap=null; function takeUndo(){ undoSnap = JSON.stringify(state); }
-    document.getElementById("endRoundBtn").onclick=()=>{ takeUndo(); state.teams.forEach(team=>team.players.forEach(p=>p.cash+=settings.roundEndReward)); log(`End Round: +${settings.roundEndReward} to all players`); persist();render(); };
-    document.getElementById("resetCashBtn").onclick=()=>{ takeUndo(); state.teams.forEach(team=>team.players.forEach(p=>p.cash=0)); log("Reset Cash: all players set to $0"); persist(); render(); };
-    document.getElementById("clearWeaponsBtn").onclick=()=>{ takeUndo(); state.teams.forEach(team=>team.players.forEach(p=>{p.currentWeapon="Starter";p.prevWeapon=null;})); log("All weapons cleared to Starter"); persist(); render(); };
-    document.getElementById("revertBtn").onclick=()=>{ if(!undoSnap){alert("Nothing to revert.");return;} state=JSON.parse(undoSnap); undoSnap=null; log("Reverted last state"); persist(); render(); };
-
-    // ================= Mass Adjust & Slots =================
-    function massAdjust(filterFn,amount){ takeUndo(); state.teams.forEach((team,tIdx)=>team.players.forEach(p=>{if(filterFn(tIdx,p)) p.cash=Math.max(0,p.cash+amount);})); log(`Mass adjust ${amount>=0?'+':''}${amount} applied`); persist();render(); }
-    const amt=()=>parseInt(document.getElementById("massAmount").value||'0')||0;
-    document.getElementById("addAllBtn").onclick=()=>massAdjust(()=>true,amt());
-    document.getElementById("subAllBtn").onclick=()=>massAdjust(()=>true,-amt());
-    document.getElementById("addTeamABtn").onclick=()=>massAdjust((t)=>t===0,amt());
-    document.getElementById("subTeamABtn").onclick=()=>massAdjust((t)=>t===0,-amt());
-    document.getElementById("addTeamBBtn").onclick=()=>massAdjust((t)=>t===1,amt());
-    document.getElementById("subTeamBBtn").onclick=()=>massAdjust((t)=>t===1,-amt());
-
-    document.getElementById("resetMatchBtn").onclick=()=>{
-      if(!confirm("Reset the entire match to defaults?")) return;
-      takeUndo();
-      state={teams:[
-        {name:"Team A",players:Array.from({length:settings.playersPerTeam},(_,i)=>({name:`Player ${i+1}`,cash:0,currentWeapon:"Starter",prevWeapon:null,dead:false,bench:false}))},
-        {name:"Team B",players:Array.from({length:settings.playersPerTeam},(_,i)=>({name:`Player ${i+1}`,cash:0,currentWeapon:"Starter",prevWeapon:null,dead:false,bench:false}))}
-      ]};
-      state.teams.forEach(team=>team.players.forEach(p=>{if(!p.id){try{p.id=crypto.randomUUID();}catch(e){p.id=String(Math.random()).slice(2);}}));
-      persist();render();log("Match reset to defaults");
-    };
-
-    function renderSlots(){
-      const slots=JSON.parse(localStorage.getItem(KEY_SLOTS)||"{}");
-      const host=document.getElementById("slotList"); host.innerHTML="";
-      Object.keys(slots).forEach(name=>{
-        const row=document.createElement("div"); row.className="log-entry"; row.style.display="flex"; row.style.justifyContent="space-between"; row.style.alignItems="center"; row.style.gap="6px";
-        const label=document.createElement("span"); label.textContent=name; row.appendChild(label);
-        const btns=document.createElement("span");
-        const load=document.createElement("button"); load.className="btn btn-compact"; load.textContent="Load"; load.onclick=()=>{ state=slots[name].state; settings=slots[name].settings; persist(); render(); openSettings(); log(`Loaded slot \"${name}\"`); };
-        const del=document.crea
+    boot();
+  </script>
+</body>
+</html>
