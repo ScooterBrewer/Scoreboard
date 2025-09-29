@@ -739,7 +739,7 @@ state.teams.forEach(team=>team.players.forEach(p=>{
   if(!p.id){ try{ p.id = crypto.randomUUID(); } catch(e){ p.id = String(Math.random()).slice(2); } }
 }));
 render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
-}
+/* removed stray /* removed stray /* removed stray } */ */ */
 
 init();
 </script>
