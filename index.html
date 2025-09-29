@@ -389,6 +389,11 @@ function makePlayerCard(team,tIdx,p,pIdx){
 
   // Actions (compact)
   const actions=document.createElement('div'); actions.className='actions';
+  const copy=document.createElement('button'); 
+  copy.className='btn btn-compact'; 
+  copy.textContent='Copy Link'; 
+  copy.onclick=()=>{ copyPlayerLink(p.name); };
+
   const kill=document.createElement('button'); kill.className='btn btn-success btn-compact'; kill.textContent='Kill';
   kill.onclick=()=>{ if(p.bench) return; p.cash+=settings.killReward; log(`${team.name}: ${p.name} Kill +${settings.killReward}`); persist(); render(); };
   const buy=document.createElement('button'); buy.className='btn btn-primary btn-compact'; buy.textContent='Buy';
