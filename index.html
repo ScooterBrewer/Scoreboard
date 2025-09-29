@@ -218,6 +218,8 @@
 
     let state = null;
     let timer = { running:false, startAt:0, elapsed:0 };
+    /* HUD-only cache for remote player data when local roster is absent */
+    const hudCache = {};
     const $ = sel=>document.querySelector(sel);
     const $$ = sel=>Array.from(document.querySelectorAll(sel));
     const uid = ()=>crypto.randomUUID();
@@ -625,18 +627,19 @@
       const mount = $('#hudPlayer');
       const found = findPlayer(pid) || {};
       const { team, player } = found;
-      if(!player){ mount.innerHTML='<div class="small" style="color:var(--muted)">Player not found</div>'; return; }
-      const borderColor = team?.color || '#3b82f6';
+      const data = player || hudCache[pid];
+      if(!data){ mount.innerHTML='<div class="small" style="color:var(--muted)">Waiting for player data…</div>'; return; }
+      const borderColor = team?.color || getComputedStyle(document.documentElement).getPropertyValue('--team-a')?.trim() || '#3b82f6';
       mount.innerHTML = `
-        <div class="player" data-player="${player.id}" style="border-color:${borderColor}; box-shadow:0 0 10px ${borderColor}55">
+        <div class="player" data-player="${player?.id||pid}" style="border-color:${borderColor}; box-shadow:0 0 10px ${borderColor}55">
           <div class="weapon-slot">
-            <img src="${weaponImgSrc(player.weapon)}" alt="${player.weapon}" onerror="this.src='';this.style.background='transparent'" />
+            <img src="${weaponImgSrc(data.weapon||'Starter')}" alt="${data.weapon||'Starter'}" onerror="this.src='';this.style.background='transparent'" />
           </div>
-          <div class="flex" style="justify-content:center;width:100%"><span style="font-weight:700">${player.name}</span></div>
-          <div class="cash-big">$${player.cash}</div>
-          <div class="small">Weapon: ${player.weapon}</div>
-          ${player.dead?'<div class="badge dead" style="margin-top:6px">⚰ Dead</div>':''}
-          ${player.benched?'<div class="badge benched" style="margin-top:6px">Benched</div>':''}
+          <div class="flex" style="justify-content:center;width:100%"><span style="font-weight:700">${data.name||'Player'}</span></div>
+          <div class="cash-big">$${data.cash??0}</div>
+          <div class="small">Weapon: ${data.weapon||'Starter'}</div>
+          ${data.dead?'<div class="badge dead" style="margin-top:6px">⚰ Dead</div>':''}
+          ${data.benched?'<div class="badge benched" style="margin-top:6px">Benched</div>':''}
         </div>`;
     }
 
@@ -714,12 +717,13 @@
       if(!fb.enabled) return;
       try{
         const {db, doc, onSnapshot, getDoc} = window.__fb;
-        getDoc(doc(db,'players', pid)).then((snap)=>{ if(snap.exists()){ const data = snap.data(); applyPlayerData(pid, data); renderHUD(pid); } });
-        onSnapshot(doc(db,'players', pid), (snap)=>{ const data=snap.data(); if(data){ applyPlayerData(pid, data); renderHUD(pid); } });
+        getDoc(doc(db,'players', pid)).then((snap)=>{ if(snap.exists()){ const data = snap.data(); hudCache[pid]=data; applyPlayerData(pid, data); renderHUD(pid); } });
+        onSnapshot(doc(db,'players', pid), (snap)=>{ const data=snap.data(); if(data){ hudCache[pid]=data; applyPlayerData(pid, data); renderHUD(pid); } });
       }catch(e){ /* ignore */ }
     }
 
     function applyPlayerData(pid, data){
+      hudCache[pid] = { name:data.name, cash:data.cash, weapon:data.weapon, dead:data.dead, benched:data.benched };
       const {player} = findPlayer(pid) || {};
       if(player){
         player.name = data.name;
