@@ -704,14 +704,15 @@ function init(){
       flagsEl.innerHTML = flags.join(' ');
     };
 
-    whenFSReady(()=> window.__fs.subscribe(playerId, (doc)=>{
-      if(!doc || !doc.data()){
-        updateHUD(null);
-      } else {
-        updateHUD(doc.data());
-      }
-    }));
-    return;
+    whenFSReady(() => 
+      window.__fs.subscribe(playerId, (doc) => {
+        if (!doc || !doc.data()) {
+          updateHUD(null);
+        } else {
+          updateHUD(doc.data());
+        }
+      })
+    );return;
   }
 
   render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
