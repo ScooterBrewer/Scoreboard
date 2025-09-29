@@ -700,6 +700,15 @@
        HUD Rendering
     ==============================*/
     function renderHUD(pid){
+  try {
+    const pid = new URLSearchParams(location.search).get('player');
+    const team = state.teams.find(t => (t.players||[]).some(p => p.id === pid));
+    if(team && team.color){
+      document.body.style.background = `linear-gradient(to bottom, ${team.color}40, ${team.color}10)`;
+      document.body.style.borderColor = team.color;
+    }
+  } catch(e) { console.error('HUD gradient update error', e); }
+
       const mount = $('#hudPlayer');
       const found = findPlayer(pid) || {};
       const { team, player } = found;
@@ -772,7 +781,23 @@
       if(isHUD()){
         const pid=new URLSearchParams(location.search).get('player');
         startFirestoreListener(pid);
-      } else {
+      
+  // Also listen for team color changes live
+  try {
+    const {db, doc, onSnapshot} = window.__fb;
+    const found = findPlayer(pid);
+    if(found && found.team){
+      const teamId = found.team.id;
+      onSnapshot(doc(db, 'teams', teamId), (snap) => {
+        const data = snap.data();
+        if(data && data.color){
+          document.documentElement.style.setProperty('--hud-color', data.color);
+          renderHUD(pid);
+        }
+      });
+    }
+  } catch(e){ console.error('HUD team color listener error', e); }
+} else {
         attachRequestListeners();
       }
     });
