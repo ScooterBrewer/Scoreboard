@@ -815,23 +815,26 @@
         });
       }catch(e){ /* ignore */ }
     }
-    function handleBuyRequest(pid, data){
-      const found = findPlayer(pid); if(!found) return;
-      const {team, player} = found;
-      const cost = parseInt(data.cost)||0;
-      const ok = confirm(`${player.name} requests ${data.weapon} for $${cost}. Approve?`);
-      const approve = ok && player.cash >= cost;
-      if(ok && player.cash < cost){ alert('Not enough cash'); }
-      if(approve){
-        player.cash -= cost;
-        player.weapon = data.weapon;
-        saveLocal(); logEvent(`${player.name} bought ${data.weapon} (-$${cost}) via request`);
-        pushPlayer(player); render();
-        updateRequestStatus(pid, 'approved');
-      } else if(ok){
-        updateRequestStatus(pid, 'denied');
-      }
-    }
+    function handleBuyRequest(pid, data) {
+  const found = findPlayer(pid);
+  if (!found) return;
+  const { team, player } = found;
+  const cost = parseInt(data.cost) || 0;
+
+  // Log request in Event Log
+  logEvent(`🛒 ${player.name} requests ${data.weapon} for $${cost}`);
+
+  // Add inline Approve/Deny buttons
+  const logEl = document.createElement('div');
+  logEl.innerHTML = `
+    <div style="margin:4px 0;padding:6px;border:1px solid #333;border-radius:6px">
+      <strong>${player.name}</strong> wants <em>${data.weapon}</em> ($${cost})<br>
+      <button class="btn success" data-approve="${pid}:${data.weapon}:${cost}">Approve</button>
+      <button class="btn danger" data-deny="${pid}">Deny</button>
+    </div>
+  `;
+  document.querySelector('#eventLog').prepend(logEl);
+}
     async function updateRequestStatus(pid, status){
       if(!fb.enabled) return;
       try{
@@ -862,7 +865,49 @@
       }
     }
 
-    /* =============================
+    
+/* Approve / Deny buy requests from Event Log */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+
+  if (btn.dataset.approve) {
+    const [pid, weapon, cost] = btn.dataset.approve.split(':');
+    const found = findPlayer(pid);
+    if (!found) return;
+    const { player } = found;
+    const c = parseInt(cost) || 0;
+
+    if (player.cash < c) {
+      toast("Not enough cash to approve");
+      updateRequestStatus(pid, 'denied');
+      btn.parentElement.remove();
+      return;
+    }
+
+    player.cash -= c;
+    player.weapon = weapon;
+    saveLocal();
+    logEvent(`✔ Approved: ${player.name} bought ${weapon} (-$${c})`);
+    pushPlayer(player);
+    render();
+    updateRequestStatus(pid, 'approved');
+    btn.parentElement.remove();
+  }
+
+  if (btn.dataset.deny) {
+    const pid = btn.dataset.deny;
+    const found = findPlayer(pid);
+    if (!found) return;
+    const { player } = found;
+    logEvent(`❌ Denied: ${player.name}'s request`);
+    updateRequestStatus(pid, 'denied');
+    btn.parentElement.remove();
+  }
+});
+
+
+/* =============================
        Boot
     ==============================*/
     function boot(){
