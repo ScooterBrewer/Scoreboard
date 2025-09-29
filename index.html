@@ -346,7 +346,7 @@ function syncAllPlayersToFirestore(){
 }
 function copyPlayerLink(id, pNameForLink){
   const name=id;
-  const url = BASE_URL + "?player=" + encodeURIComponent(name) + "&name=" + encodeURIComponent(pNameForLink ?? '');
+  const url = BASE_URL + "?player=" + encodeURIComponent(id) + "&name=" + encodeURIComponent(pNameForLink ?? '');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(url).then(()=>log("Copied link for " + name)).catch(()=>alert(url));
   }else{ prompt("Copy link:", url); }
@@ -649,11 +649,13 @@ document.getElementById("exportJsonBtn").onclick=()=>{const blob=new Blob([JSON.
 document.getElementById("exportCsvBtn").onclick=()=>{let rows=[["Team","Player","Cash","Weapon","Dead","Bench"]];state.teams.forEach((team)=>team.players.forEach(p=>rows.push([team.name,p.name,p.cash,p.currentWeapon,p.dead,p.bench])));const csv=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="finals_match.csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);};
 
 
+
 function init(){
   const qp = new URLSearchParams(location.search);
-  const hudName = qp.get('player');
+  const playerId = qp.get('player');
+  const fallbackName = qp.get('name');
 
-  if(hudName){
+  if(playerId){
     document.body.innerHTML = `
       <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--ink);padding:24px">
         <div style="max-width:520px;width:100%;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.25)">
@@ -677,11 +679,35 @@ function init(){
     const cashEl=document.getElementById('hudCash');
     const wepEl=document.getElementById('hudWeapon');
     const flagsEl=document.getElementById('hudFlags');
-    nameEl.textContent=hudName;
+    nameEl.textContent=fallbackName ?? playerId;
 
     const updateHUD=(p)=>{
-      if(!p){ cashEl.textContent='$0'; wepEl.textContent='Starter'; flagsEl.innerHTML='<div style="color:var(--muted)">Waiting for data…</div>'; return; }
+      if(!p){ 
+        cashEl.textContent='$0'; 
+        wepEl.textContent='Starter'; 
+        flagsEl.innerHTML='<div style="color:var(--muted)">Waiting for data…</div>'; 
+        return; 
+      }
+      nameEl.textContent = p.name ?? fallbackName ?? 'Unknown';
       cashEl.textContent = '$' + (p.cash ?? 0);
+      wepEl.textContent = p.currentWeapon ?? 'Starter';
+      const flags=[];
+      if(p.dead) flags.push("<span style='background:var(--danger);color:#fff;padding:6px 10px;border-radius:10px;font-weight:700'>⚰ Dead</span>");
+      if(p.bench) flags.push("<span style='background:#6b7280;color:#fff;padding:6px 10px;border-radius:10px;font-weight:700'>BENCHED</span>");
+      flagsEl.innerHTML = flags.join(' ');
+    };
+
+    if(window.__fs){
+      window.__fs.subscribe(playerId, (data)=> updateHUD(data));
+    } else {
+      updateHUD(null);
+    }
+    return;
+  }
+
+  render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
+}
+cashEl.textContent = '$' + (p.cash ?? 0);
       wepEl.textContent = p.currentWeapon ?? 'Starter';
       const flags=[];
       if(p.dead) flags.push("<span style='background:var(--danger);color:#fff;padding:6px 10px;border-radius:10px;font-weight:700'>⚰ Dead</span>");
