@@ -105,6 +105,30 @@
   border-color: var(--accent);
 }
 
+
+#toast {
+  visibility: hidden;
+  min-width: 160px;
+  margin-left: -80px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 8px;
+  position: fixed;
+  z-index: 1000;
+  left: 50%;
+  bottom: 40px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.5s, bottom 0.5s;
+}
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+  bottom: 60px;
+}
+
 </style>
 
 <!-- Firebase (module) -->
@@ -300,6 +324,14 @@ const WEAPONS={
 
 /* ======= Utils ======= */
 /* ======= Cloud Sync & Links ======= */
+
+function showToast(){
+  const t=document.getElementById("toast");
+  if(!t) return;
+  t.className="show";
+  setTimeout(()=>{t.className=t.className.replace("show","");},2000);
+}
+
 const BASE_URL = "https://scooterbrewer.github.io/The-Finals-Scoreboard/";
 function syncAllPlayersToFirestore(){
   if(!window.__fs) return;
@@ -312,8 +344,9 @@ function syncAllPlayersToFirestore(){
     }));
   }catch(e){ console.error("syncAllPlayersToFirestore failed", e); }
 }
-function copyPlayerLink(name){
-  const url = BASE_URL + "?player=" + encodeURIComponent(name);
+function copyPlayerLink(id, pNameForLink){
+  const name=id;
+  const url = BASE_URL + "?player=" + encodeURIComponent(name) + "&name=" + encodeURIComponent(pNameForLink ?? '');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(url).then(()=>log("Copied link for " + name)).catch(()=>alert(url));
   }else{ prompt("Copy link:", url); }
@@ -409,7 +442,7 @@ function makePlayerCard(team,tIdx,p,pIdx){
   const copy=document.createElement('button'); 
   copy.className='btn btn-compact'; 
   copy.textContent='Live'; copy.classList.add('btn-link'); 
-  copy.onclick=()=>{ copyPlayerLink(p.id); };
+  copy.onclick=()=>{ copyPlayerLink(p.id, p.name); };
 
   const kill=document.createElement('button'); kill.className='btn btn-success btn-compact'; kill.textContent='Kill';
   kill.onclick=()=>{ if(p.bench) return; p.cash+=settings.killReward; log(`${team.name}: ${p.name} Kill +${settings.killReward}`); persist(); render(); };
@@ -674,5 +707,6 @@ render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
 
 init();
 </script>
+<div id='toast'>✅ Live link copied</div>
 </body>
 </html>
