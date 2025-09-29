@@ -10,12 +10,12 @@
     --btn:#2f8ef3; --ok:#2fbf6e; --warn:#ffb86b; --danger:#ff6b6b; --card:#14171b; --chip:#20252d;
     --accent:#8ab8ff; --cost:#ffd2a8;
     --teamA:#2563eb; --teamB:#ef4444;
-  }
+/* removed stray } */
   html[data-theme="light"]{
     --bg:#f6f8fb; --panel:#ffffff; --muted:#5c6b7a; --line:rgba(0,0,0,.08); --ink:#0e1726;
     --btn:#2563eb; --ok:#16a34a; --warn:#f59e0b; --danger:#ef4444; --card:#f9fafb; --chip:#eef2f7;
     --accent:#0ea5e9; --cost:#b45309;
-  }
+/* removed stray } */
   *{box-sizing:border-box}
   body{font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:var(--bg);color:var(--ink)}
   header{background:linear-gradient(90deg,var(--panel),var(--chip));padding:10px 16px;border-bottom:1px solid var(--line)}
@@ -99,7 +99,7 @@
   margin-top:4px;
   display:block;
   width:100%;
-}
+/* removed stray } */
 .btn-link:hover {
   color: var(--ink);
   border-color: var(--accent);
@@ -737,7 +737,7 @@ state.teams.forEach(team=>team.players.forEach(p=>{
   if(!p.id){ try{ p.id = crypto.randomUUID(); } catch(e){ p.id = String(Math.random()).slice(2); } }
 }));
 render(); updateClock(); renderSlots(); syncAllPlayersToFirestore();
-/* removed stray /* removed stray /* removed stray } */ */ */
+/* removed stray /* removed stray /* removed stray /* removed stray /* removed stray /* removed stray } */ */ */ */ */ */
 
 init();
 </script>
